@@ -26,6 +26,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     log.info(
         "app.startup",
         app=settings.app.APP_NAME,
+        environment=settings.environment,
         is_production=settings.is_production,
         mongodb_db=settings.mongodb_db_name,
         google_oauth_configured=bool(settings.google_client_id),

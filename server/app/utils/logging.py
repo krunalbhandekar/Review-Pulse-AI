@@ -3,9 +3,8 @@
 Log level + JSON-vs-console rendering are driven by static config:
 
 * ``AppConfig.LOG_LEVEL`` controls verbosity.
-* JSON output kicks in when ``settings.is_production`` is true (i.e.
-  on a PaaS that auto-sets ``RENDER``, or when ``ENVIRONMENT=production``
-  is set explicitly).
+* JSON output kicks in when ``settings.is_production`` is true — i.e.
+  when ``ENVIRONMENT=PRODUCTION`` is set in the environment.
 """
 
 from __future__ import annotations

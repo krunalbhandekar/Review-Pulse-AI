@@ -40,6 +40,7 @@ There are **two surfaces**:
    class. The full list is in [`.env.example`](.env.example):
 
    ```
+   ENVIRONMENT
    MONGODB_URI
    SESSION_SECRET
    GOOGLE_CLIENT_ID
@@ -54,8 +55,15 @@ There are **two surfaces**:
 
    That's it. CORS origins are *derived* from the redirects; the
    MongoDB DB name is *parsed* from the URI; the production flag is
-   *inferred* from the PaaS-set `RENDER` variable (or an explicit
-   `ENVIRONMENT=production`).
+   *derived* from a single `ENVIRONMENT` variable:
+
+   * `ENVIRONMENT=PRODUCTION` → `IS_PRODUCTION=true`
+   * any other value (or unset) → `IS_PRODUCTION=false` (defaults to
+     `DEVELOPMENT`)
+
+   There is **no** separate `IS_PRODUCTION` env var, and no PaaS-specific
+   fallback (`RENDER`, etc.) — set `ENVIRONMENT=PRODUCTION` explicitly on
+   the platform.
 
 ## Running locally
 
@@ -164,8 +172,7 @@ Session cookie only — no JWT. The flow:
    `NotAuthenticatedError` (401) when the cookie is missing/expired.
 
 The session cookie is `https_only` automatically whenever
-`settings.is_production` is true (i.e. on Render or with
-`ENVIRONMENT=production`).
+`settings.is_production` is true (i.e. when `ENVIRONMENT=PRODUCTION`).
 
 ## Render deployment
 
@@ -184,6 +191,7 @@ The session cookie is `https_only` automatically whenever
 
    | Key                   | Value                                                        |
    | --------------------- | ------------------------------------------------------------ |
+   | `ENVIRONMENT`         | `PRODUCTION` (flips `IS_PRODUCTION=true`)                    |
    | `MONGODB_URI`         | `mongodb+srv://…/mt_review_intelligence`                     |
    | `SESSION_SECRET`      | `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
    | `GOOGLE_CLIENT_ID`    | from Google Cloud console                                    |
@@ -195,12 +203,13 @@ The session cookie is `https_only` automatically whenever
    | `MCP_SHARED_SECRET`   | must match the value on the MCP service                      |
    | `GROQ_API_KEY`        | from console.groq.com                                        |
 
-   You do **not** set `PORT`, `APP_NAME`, `LOG_LEVEL`, `ENVIRONMENT`,
+   You do **not** set `PORT`, `APP_NAME`, `LOG_LEVEL`, `IS_PRODUCTION`,
    `MONGODB_DB`, `FRONTEND_ORIGINS`, `SESSION_COOKIE_NAME`,
    `SESSION_MAX_AGE_SECONDS`, `MCP_TIMEOUT_SECONDS`, `MCP_MAX_RETRIES`,
-   `GROQ_MODEL`, or `SCHEDULER_POLL_INTERVAL` — they're code constants.
-   Render auto-injects `RENDER=true`, which is what flips the app into
-   production mode.
+   `GROQ_MODEL`, or `SCHEDULER_POLL_INTERVAL` — they're code constants
+   or, in the case of `IS_PRODUCTION`, *derived* from `ENVIRONMENT`.
+   Setting `ENVIRONMENT=PRODUCTION` is what flips the app into
+   production mode (HTTPS-only cookies, JSON logs, real email sends).
 
 5. Make sure `GOOGLE_REDIRECT_URI` is also added as an Authorised
    redirect URI on the OAuth client in Google Cloud.

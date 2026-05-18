@@ -7,11 +7,23 @@ deployment-specific values come from ``.env`` (``_Secrets``).
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from functools import lru_cache
 from urllib.parse import urlparse
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+# ---------------------------------------------------------------------------
+# Environment flag — single source of truth
+# ---------------------------------------------------------------------------
+# Mirrors server/app/config/settings.py: ``ENVIRONMENT`` is the only signal
+# that decides production-ness. Anything other than the literal string
+# ``PRODUCTION`` (case-insensitive) is treated as non-prod. Missing or
+# blank => DEVELOPMENT.
+ENVIRONMENT: str = (os.getenv("ENVIRONMENT") or "DEVELOPMENT").strip().upper() or "DEVELOPMENT"
+IS_PRODUCTION: bool = ENVIRONMENT == "PRODUCTION"
 
 
 # ---------------------------------------------------------------------------
@@ -112,12 +124,15 @@ class Settings:
         return _extract_db_name(self.mongodb_uri)
 
     @property
-    def is_production(self) -> bool:
-        import os
+    def environment(self) -> str:
+        """Normalised ``ENVIRONMENT`` value (uppercase, defaults to
+        ``DEVELOPMENT``)."""
+        return ENVIRONMENT
 
-        if os.environ.get("RENDER"):
-            return True
-        return os.environ.get("ENVIRONMENT", "").lower() in {"production", "prod"}
+    @property
+    def is_production(self) -> bool:
+        """True iff ``ENVIRONMENT=PRODUCTION``."""
+        return IS_PRODUCTION
 
 
 @lru_cache(maxsize=1)
@@ -132,6 +147,8 @@ __all__ = [
     "AppConfig",
     "GoogleConfig",
     "Collections",
+    "ENVIRONMENT",
+    "IS_PRODUCTION",
     "Settings",
     "get_settings",
     "settings",

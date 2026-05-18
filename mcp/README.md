@@ -37,6 +37,7 @@ There are **two surfaces**:
    [`.env.example`](.env.example):
 
    ```
+   ENVIRONMENT
    MONGODB_URI
    GOOGLE_CLIENT_ID
    GOOGLE_CLIENT_SECRET
@@ -44,8 +45,14 @@ There are **two surfaces**:
    ```
 
    That's it. The MongoDB DB name is parsed from the URI; the
-   production flag is inferred from `RENDER` or
-   `ENVIRONMENT=production`.
+   production flag is *derived* from a single `ENVIRONMENT` variable:
+
+   * `ENVIRONMENT=PRODUCTION` → `IS_PRODUCTION=true`
+   * any other value (or unset) → `IS_PRODUCTION=false` (defaults to
+     `DEVELOPMENT`)
+
+   No separate `IS_PRODUCTION` env var, no PaaS-specific fallback —
+   set `ENVIRONMENT=PRODUCTION` explicitly on the deployment platform.
 
 ## Running locally
 
@@ -163,14 +170,15 @@ re-authenticate via `/auth/google/login`.
 
    | Key                  | Value                                       |
    | -------------------- | ------------------------------------------- |
+   | `ENVIRONMENT`        | `PRODUCTION` (flips `IS_PRODUCTION=true`)   |
    | `MONGODB_URI`        | `mongodb+srv://…/mt_review_intelligence`    |
    | `GOOGLE_CLIENT_ID`   | same OAuth client as the server             |
    | `GOOGLE_CLIENT_SECRET`| same OAuth client as the server            |
    | `MCP_SHARED_SECRET`  | must match the value on the server          |
 
-   You do **not** set `PORT`, `APP_NAME`, `LOG_LEVEL`, `ENVIRONMENT`,
-   or `MONGODB_DB` — they're code constants / derived. Render
-   auto-injects `RENDER=true`, which flips JSON log output on.
+   You do **not** set `PORT`, `APP_NAME`, `LOG_LEVEL`, `IS_PRODUCTION`,
+   or `MONGODB_DB` — they're code constants / derived. Setting
+   `ENVIRONMENT=PRODUCTION` is what flips JSON log output on.
 
 5. After deploy, point the server's `MCP_SERVER_URL` at this service's
    public URL (or its private network address).
