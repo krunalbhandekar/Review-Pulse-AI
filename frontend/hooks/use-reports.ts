@@ -14,20 +14,24 @@ import {
 } from "@/services/reports";
 import { DEFAULT_PAGE_SIZE } from "@/types/pagination";
 
-export const reportsKey = (params?: ListReportsParams) =>
+export const reportsListKey = (params: ListReportsParams = {}) =>
   [
     "reports",
     "list",
     {
-      productId: params?.productId ?? null,
-      page: params?.page ?? 1,
-      limit: params?.limit ?? DEFAULT_PAGE_SIZE,
+      productId: params.productId ?? null,
+      status: params.status ?? null,
+      search: params.search ?? "",
+      page: params.page ?? 1,
+      limit: params.limit ?? DEFAULT_PAGE_SIZE,
+      sortBy: params.sortBy ?? "generatedAt",
+      sortOrder: params.sortOrder ?? "desc",
     },
   ] as const;
 
 export function useReports(params: ListReportsParams = {}) {
   return useQuery({
-    queryKey: reportsKey(params),
+    queryKey: reportsListKey(params),
     queryFn: () => listReports(params),
     placeholderData: keepPreviousData,
   });

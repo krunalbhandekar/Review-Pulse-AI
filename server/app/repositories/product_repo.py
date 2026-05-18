@@ -40,24 +40,48 @@ class ProductRepository:
             raise NotFoundError("Product not found")
         return Product(**doc)
 
+    @staticmethod
+    def _build_query(user_id: ObjectId, search: Optional[str]) -> dict:
+        """Common filter for list + count — keeps the two in lockstep."""
+        from app.models.pagination import search_regex
+
+        query: dict = {"userId": user_id}
+        if search:
+            clause = search_regex(search)
+            # Match any of the user-visible identity fields.
+            query["$or"] = [
+                {"productName": clause},
+                {"playstoreAppId": clause},
+                {"appstoreAppId": clause},
+                {"emailTo": clause},
+            ]
+        return query
+
     async def list_for_user(
         self,
         user_id: ObjectId,
         *,
         skip: int = 0,
         limit: int = 0,
+        search: Optional[str] = None,
+        sort_field: str = "createdAt",
+        sort_order: int = -1,
     ) -> list[Product]:
         # ``limit=0`` in Motor means "no limit" — preserved for the
         # handful of internal callers that still want the full set.
-        cursor = self._col.find({"userId": user_id}).sort("createdAt", -1)
+        cursor = self._col.find(self._build_query(user_id, search)).sort(
+            sort_field, sort_order
+        )
         if skip:
             cursor = cursor.skip(skip)
         if limit:
             cursor = cursor.limit(limit)
         return [Product(**doc) async for doc in cursor]
 
-    async def count_for_user(self, user_id: ObjectId) -> int:
-        return await self._col.count_documents({"userId": user_id})
+    async def count_for_user(
+        self, user_id: ObjectId, *, search: Optional[str] = None
+    ) -> int:
+        return await self._col.count_documents(self._build_query(user_id, search))
 
     async def update(
         self, *, user_id: ObjectId, product_id: ObjectId, data: ProductUpdate

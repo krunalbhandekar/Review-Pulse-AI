@@ -8,8 +8,14 @@ import {
 } from "@/types/pagination";
 import type { Schedule, ScheduleInput } from "@/types/schedule";
 
+export type ScheduleSortBy = "createdAt" | "nextRunAt" | "lastRunAt";
+export type SortOrder = "asc" | "desc";
+
 export interface ListSchedulesParams extends PageParams {
   productId?: string;
+  enabled?: boolean;
+  sortBy?: ScheduleSortBy;
+  sortOrder?: SortOrder;
 }
 
 export async function listSchedules(
@@ -17,16 +23,54 @@ export async function listSchedules(
 ): Promise<Page<Schedule>> {
   const page = params.page ?? 1;
   const limit = params.limit ?? DEFAULT_PAGE_SIZE;
-  const filtered = params.productId
-    ? MOCK_SCHEDULES.filter((s) => s.productId === params.productId)
-    : MOCK_SCHEDULES;
   return withMockFallback(
     () =>
       api<Page<Schedule>>("/schedules", {
-        query: { productId: params.productId, page, limit },
+        query: {
+          productId: params.productId,
+          enabled: params.enabled,
+          page,
+          limit,
+          sort_by: params.sortBy,
+          sort_order: params.sortOrder,
+        },
       }),
-    mockPage(filtered, page, limit),
+    mockPage(
+      filterAndSortMocks(
+        MOCK_SCHEDULES,
+        params.productId,
+        params.enabled,
+        params.sortBy,
+        params.sortOrder,
+      ),
+      page,
+      limit,
+    ),
   );
+}
+
+function filterAndSortMocks(
+  rows: Schedule[],
+  productId: string | undefined,
+  enabled: boolean | undefined,
+  sortBy: ScheduleSortBy | undefined,
+  sortOrder: SortOrder | undefined,
+): Schedule[] {
+  let out = rows.filter((s) => {
+    if (productId && s.productId !== productId) return false;
+    if (enabled !== undefined && s.enabled !== enabled) return false;
+    return true;
+  });
+  const key = sortBy ?? "createdAt";
+  const dir = (sortOrder ?? "desc") === "desc" ? -1 : 1;
+  out = out.sort((a, b) => {
+    const av = (a[key] ?? "") as string;
+    const bv = (b[key] ?? "") as string;
+    if (av < bv) return -1 * dir;
+    if (av > bv) return 1 * dir;
+    return 0;
+  });
+  return out;
 }
 
 export async function createSchedule(input: ScheduleInput): Promise<Schedule> {

@@ -50,6 +50,14 @@ async def ensure_indexes() -> None:
                    name="user_generatedAt"),
         IndexModel([("productId", ASCENDING), ("generatedAt", DESCENDING)],
                    name="product_generatedAt"),
+        # Server-side status filter scopes to userId first, so the compound
+        # index turns "filter by status, sort by generatedAt desc" into a
+        # covered scan instead of a full-collection match.
+        IndexModel(
+            [("userId", ASCENDING), ("status", ASCENDING),
+             ("generatedAt", DESCENDING)],
+            name="user_status_generatedAt",
+        ),
     ])
 
     await db[Collections.JOB_RUNS].create_indexes([

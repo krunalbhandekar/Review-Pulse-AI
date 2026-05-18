@@ -12,28 +12,34 @@ import {
   getProduct,
   listProducts,
   updateProduct,
+  type ListProductsParams,
 } from "@/services/products";
-import { DEFAULT_PAGE_SIZE, type PageParams } from "@/types/pagination";
+import { DEFAULT_PAGE_SIZE } from "@/types/pagination";
 import type { ProductInput } from "@/types/product";
 
-// All product caches share the "products" root so mutations invalidate
-// every paginated slice at once. The page+limit are baked into the key
-// so React Query treats each page as its own cache entry.
-export const productsKey = (params?: PageParams | string) => {
-  if (typeof params === "string") return ["products", params] as const;
-  return [
+// Query key encodes every server-meaningful param so React Query treats
+// each filter combination as its own cache entry.
+export const productsListKey = (params: ListProductsParams = {}) =>
+  [
     "products",
     "list",
-    { page: params?.page ?? 1, limit: params?.limit ?? DEFAULT_PAGE_SIZE },
+    {
+      page: params.page ?? 1,
+      limit: params.limit ?? DEFAULT_PAGE_SIZE,
+      search: params.search ?? "",
+      sortBy: params.sortBy ?? "createdAt",
+      sortOrder: params.sortOrder ?? "desc",
+    },
   ] as const;
-};
 
-export function useProducts(params: PageParams = {}) {
+export const productsKey = (id: string) => ["products", id] as const;
+
+export function useProducts(params: ListProductsParams = {}) {
   return useQuery({
-    queryKey: productsKey(params),
+    queryKey: productsListKey(params),
     queryFn: () => listProducts(params),
-    // Avoids the "blink to empty" when paging — keep showing the
-    // previous page while the next one loads.
+    // Keep the previous page on screen while the next one loads — no
+    // "blink to empty" between pages or while debouncing search.
     placeholderData: keepPreviousData,
   });
 }
@@ -47,7 +53,6 @@ export function useProduct(id: string) {
 }
 
 function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
-  // Match every paginated key under the "products" root.
   qc.invalidateQueries({ queryKey: ["products"] });
 }
 

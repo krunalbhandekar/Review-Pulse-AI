@@ -17,12 +17,62 @@ contract; it's transport-level metadata, not a domain field.
 from __future__ import annotations
 
 import math
-from typing import Annotated, Generic, TypeVar
+import re
+from enum import Enum
+from typing import Annotated, Generic, Mapping, Optional, TypeVar
 
-from fastapi import Query
+from fastapi import HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 T = TypeVar("T")
+
+
+class SortOrder(str, Enum):
+    """Wire enum for ``sort_order``. Resolves to Mongo's ``1`` / ``-1``."""
+
+    ASC = "asc"
+    DESC = "desc"
+
+    @property
+    def mongo(self) -> int:
+        return 1 if self is SortOrder.ASC else -1
+
+
+def resolve_sort(
+    *,
+    sort_by: Optional[str],
+    sort_order: SortOrder,
+    allowed: Mapping[str, str],
+    default_field: str,
+) -> tuple[str, int]:
+    """Validate ``sort_by`` against a per-route whitelist.
+
+    ``allowed`` maps the wire name (what the client sends) to the Mongo
+    field name. Anything not in the map => 422 so the client can't probe
+    for indexable / non-indexable fields.
+    """
+    if sort_by is None:
+        return allowed[default_field], sort_order.mongo
+    if sort_by not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"Invalid sort_by={sort_by!r}; "
+                f"allowed: {sorted(allowed)}"
+            ),
+        )
+    return allowed[sort_by], sort_order.mongo
+
+
+def search_regex(query: str) -> dict:
+    """Build a case-insensitive ``$regex`` clause for free-text search.
+
+    User input is ``re.escape``-d so a user typing ``a.b`` literally
+    matches ``a.b`` rather than "a, any char, b". Anchoring is deliberately
+    omitted so the term matches anywhere in the field — predictable UX,
+    and the per-user index prefix scopes the scan to a small slice.
+    """
+    return {"$regex": re.escape(query), "$options": "i"}
 
 DEFAULT_PAGE_SIZE = 10
 # Cap to keep a single page response bounded — prevents accidental
@@ -79,5 +129,8 @@ __all__ = [
     "LimitQuery",
     "Page",
     "PageQuery",
+    "SortOrder",
+    "resolve_sort",
+    "search_regex",
     "skip_for",
 ]

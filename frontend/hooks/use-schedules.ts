@@ -16,20 +16,23 @@ import {
 import { DEFAULT_PAGE_SIZE } from "@/types/pagination";
 import type { ScheduleInput } from "@/types/schedule";
 
-export const schedulesKey = (params?: ListSchedulesParams) =>
+export const schedulesListKey = (params: ListSchedulesParams = {}) =>
   [
     "schedules",
     "list",
     {
-      productId: params?.productId ?? null,
-      page: params?.page ?? 1,
-      limit: params?.limit ?? DEFAULT_PAGE_SIZE,
+      productId: params.productId ?? null,
+      enabled: params.enabled ?? null,
+      page: params.page ?? 1,
+      limit: params.limit ?? DEFAULT_PAGE_SIZE,
+      sortBy: params.sortBy ?? "createdAt",
+      sortOrder: params.sortOrder ?? "desc",
     },
   ] as const;
 
 export function useSchedules(params: ListSchedulesParams = {}) {
   return useQuery({
-    queryKey: schedulesKey(params),
+    queryKey: schedulesListKey(params),
     queryFn: () => listSchedules(params),
     placeholderData: keepPreviousData,
   });

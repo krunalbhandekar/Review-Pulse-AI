@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Path, Response, status
+from fastapi import APIRouter, Depends, Path, Query, Response, status
 
 from app.api.deps import CurrentUser, product_repo, schedule_repo
 from app.models.pagination import (
@@ -11,6 +11,8 @@ from app.models.pagination import (
     LimitQuery,
     Page,
     PageQuery,
+    SortOrder,
+    resolve_sort,
     skip_for,
 )
 from app.models.product import ProductCreate, ProductPublic, ProductUpdate
@@ -41,18 +43,59 @@ async def create_product(
     return ProductPublic.from_product(product)
 
 
+_PRODUCT_SORT_FIELDS = {
+    # wire name  -> Mongo field
+    "createdAt": "createdAt",
+    "updatedAt": "updatedAt",
+    "productName": "productName",
+}
+
+
 @router.get("", response_model=Page[ProductPublic])
 async def list_products(
     user: CurrentUser,
     repo: Annotated[ProductRepository, Depends(product_repo)],
     page: PageQuery = 1,
     limit: LimitQuery = DEFAULT_PAGE_SIZE,
+    search: Annotated[
+        Optional[str],
+        Query(
+            max_length=200,
+            description="Case-insensitive substring across productName, "
+            "playstoreAppId, appstoreAppId, emailTo.",
+        ),
+    ] = None,
+    sort_by: Annotated[
+        Optional[str],
+        Query(description=f"One of {sorted(_PRODUCT_SORT_FIELDS)}."),
+    ] = None,
+    sort_order: SortOrder = SortOrder.DESC,
 ) -> Page[ProductPublic]:
-    """Paginated list of the caller's products, newest first."""
+    """Paginated list of the caller's products.
+
+    Filtering, searching, sorting, and pagination all run server-side
+    so the client never receives more rows than it renders.
+    """
+    sort_field, order = resolve_sort(
+        sort_by=sort_by,
+        sort_order=sort_order,
+        allowed=_PRODUCT_SORT_FIELDS,
+        default_field="createdAt",
+    )
+    # Treat blank / whitespace-only search as "no filter" so the client
+    # can pass the raw input box value without trimming.
+    query = (search or "").strip() or None
     skip = skip_for(page, limit)
     products, total = await asyncio.gather(
-        repo.list_for_user(user.id, skip=skip, limit=limit),
-        repo.count_for_user(user.id),
+        repo.list_for_user(
+            user.id,
+            skip=skip,
+            limit=limit,
+            search=query,
+            sort_field=sort_field,
+            sort_order=order,
+        ),
+        repo.count_for_user(user.id, search=query),
     )
     return Page[ProductPublic].build(
         items=[ProductPublic.from_product(p) for p in products],

@@ -51,14 +51,34 @@ class ScheduleRepository:
         doc = await self._col.find_one({"_id": schedule_id})
         return Schedule(**doc) if doc else None
 
+    @staticmethod
+    def _build_query(
+        user_id: ObjectId,
+        *,
+        product_id: Optional[ObjectId],
+        enabled: Optional[bool],
+    ) -> dict:
+        query: dict = {"userId": user_id}
+        if product_id is not None:
+            query["productId"] = product_id
+        if enabled is not None:
+            query["enabled"] = enabled
+        return query
+
     async def list_for_user(
         self,
         user_id: ObjectId,
         *,
+        product_id: Optional[ObjectId] = None,
+        enabled: Optional[bool] = None,
+        sort_field: str = "createdAt",
+        sort_order: int = -1,
         skip: int = 0,
         limit: int = 0,
     ) -> list[Schedule]:
-        cursor = self._col.find({"userId": user_id}).sort("createdAt", -1)
+        cursor = self._col.find(
+            self._build_query(user_id, product_id=product_id, enabled=enabled)
+        ).sort(sort_field, sort_order)
         if skip:
             cursor = cursor.skip(skip)
         if limit:
@@ -70,26 +90,35 @@ class ScheduleRepository:
         *,
         user_id: ObjectId,
         product_id: ObjectId,
+        enabled: Optional[bool] = None,
+        sort_field: str = "createdAt",
+        sort_order: int = -1,
         skip: int = 0,
         limit: int = 0,
     ) -> list[Schedule]:
-        cursor = (
-            self._col.find({"userId": user_id, "productId": product_id})
-            .sort("createdAt", -1)
+        # Thin wrapper kept for the existing call site in the routes —
+        # delegates to ``list_for_user`` so the filter logic lives in one
+        # place.
+        return await self.list_for_user(
+            user_id,
+            product_id=product_id,
+            enabled=enabled,
+            sort_field=sort_field,
+            sort_order=sort_order,
+            skip=skip,
+            limit=limit,
         )
-        if skip:
-            cursor = cursor.skip(skip)
-        if limit:
-            cursor = cursor.limit(limit)
-        return [Schedule(**doc) async for doc in cursor]
 
     async def count_for_user(
-        self, user_id: ObjectId, *, product_id: Optional[ObjectId] = None
+        self,
+        user_id: ObjectId,
+        *,
+        product_id: Optional[ObjectId] = None,
+        enabled: Optional[bool] = None,
     ) -> int:
-        query: dict = {"userId": user_id}
-        if product_id is not None:
-            query["productId"] = product_id
-        return await self._col.count_documents(query)
+        return await self._col.count_documents(
+            self._build_query(user_id, product_id=product_id, enabled=enabled)
+        )
 
     async def update(
         self,

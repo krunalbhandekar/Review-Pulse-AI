@@ -16,6 +16,7 @@ import {
   useDeleteProduct,
   useProducts,
 } from "@/hooks/use-products";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useRunReport } from "@/hooks/use-reports";
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_PAGE_SIZE } from "@/types/pagination";
@@ -23,35 +24,38 @@ import type { Product } from "@/types/product";
 
 export default function ProductsPage() {
   const [page, setPage] = React.useState(1);
+  const [search, setSearch] = React.useState("");
+  // Debounce the input so we send a single request per typing burst
+  // rather than one per keystroke.
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  // Reset to page 1 whenever the active filter changes — otherwise the
+  // user could land on (e.g.) page 4 of a much shorter filtered result
+  // and see an empty page.
+  React.useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
   const {
     data,
     isLoading,
     isError,
     isFetching,
     refetch,
-  } = useProducts({ page, limit: DEFAULT_PAGE_SIZE });
+  } = useProducts({
+    page,
+    limit: DEFAULT_PAGE_SIZE,
+    search: debouncedSearch,
+  });
   const products = data?.items ?? [];
+
   const deleteProduct = useDeleteProduct();
   const runReport = useRunReport();
   const { toast } = useToast();
 
-  const [search, setSearch] = React.useState("");
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Product | null>(null);
   const [toDelete, setToDelete] = React.useState<Product | null>(null);
-
-  // Local-only search across the current page. The dataset is paginated
-  // server-side, so searching across pages would need a backend filter
-  // param — out of scope for this pass.
-  const filtered = React.useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) =>
-      [p.productName, p.playstoreAppId, p.appstoreAppId, p.emailTo]
-        .filter(Boolean)
-        .some((v) => v!.toLowerCase().includes(q)),
-    );
-  }, [products, search]);
 
   function openCreate() {
     setEditing(null);
@@ -95,6 +99,13 @@ export default function ProductsPage() {
     }
   }
 
+  // Distinguish "no results for this search" from "no products at all"
+  // using the server's total. ``total === 0`` with a non-empty search
+  // term means the search matched nothing; ``total === 0`` with no
+  // search means the user hasn't created any products yet.
+  const hasActiveSearch = debouncedSearch.trim().length > 0;
+  const totalRows = data?.total ?? 0;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -121,8 +132,14 @@ export default function ProductsPage() {
         <CardListShimmer count={6} />
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
-      ) : filtered.length === 0 ? (
-        products.length === 0 ? (
+      ) : products.length === 0 ? (
+        hasActiveSearch ? (
+          <EmptyState
+            icon={Search}
+            title="No matches"
+            description="Try a different search term."
+          />
+        ) : totalRows === 0 ? (
           <EmptyState
             icon={Package}
             title="No products yet"
@@ -134,16 +151,12 @@ export default function ProductsPage() {
             }
           />
         ) : (
-          <EmptyState
-            icon={Search}
-            title="No matches"
-            description="Try a different search term."
-          />
+          <EmptyState icon={Package} title="No products on this page" />
         )
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((p) => (
+            {products.map((p) => (
               <ProductCard
                 key={p.id}
                 product={p}

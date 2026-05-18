@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useProducts } from "@/hooks/use-products";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useReports } from "@/hooks/use-reports";
 import { fmtDateTime, fmtCount } from "@/lib/format";
 import { ROUTES } from "@/lib/config";
@@ -30,12 +31,20 @@ import type { Report, ReportStatus } from "@/types/report";
 
 export default function ReportsPage() {
   const [page, setPage] = React.useState(1);
+  const [search, setSearch] = React.useState("");
+  const [status, setStatus] = React.useState<ReportStatus | "all">("all");
   const [productId, setProductId] = React.useState<string | "all">("all");
 
-  // Reports are paginated server-side by productId. Status + free-text
-  // search remain client-side filters over the current page; they reset
-  // the page back to 1 when changed so the user always starts at the top
-  // of a filtered view.
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  // Any filter change resets pagination — otherwise "page 4 of nothing"
+  // can happen when the filtered total shrinks.
+  React.useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, status, productId]);
+
+  // All four params (search/status/productId/page) flow to the server.
+  // Nothing is filtered client-side any more.
   const {
     data,
     isLoading,
@@ -45,34 +54,24 @@ export default function ReportsPage() {
   } = useReports({
     page,
     limit: DEFAULT_PAGE_SIZE,
+    search: debouncedSearch,
+    status: status === "all" ? undefined : status,
     productId: productId === "all" ? undefined : productId,
   });
   const reports = data?.items ?? [];
 
+  // The filter dropdown still needs the product list for its labels;
+  // bounded to MAX_PAGE_SIZE since this is just a picker.
   const { data: productsPage } = useProducts({ limit: MAX_PAGE_SIZE });
   const products = productsPage?.items ?? [];
-
-  const [search, setSearch] = React.useState("");
-  const [status, setStatus] = React.useState<ReportStatus | "all">("all");
 
   const productNameById = React.useMemo(
     () => Object.fromEntries(products.map((p) => [p.id, p.productName])),
     [products],
   );
 
-  // Client-side narrowing on top of the current page.
-  const filtered = React.useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return reports.filter((r) => {
-      if (status !== "all" && r.status !== status) return false;
-      if (q && !r.reportTitle.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [reports, search, status]);
-
-  React.useEffect(() => {
-    setPage(1);
-  }, [search, status, productId]);
+  const hasActiveFilter =
+    debouncedSearch.trim().length > 0 || status !== "all" || productId !== "all";
 
   return (
     <div className="space-y-6">
@@ -95,8 +94,10 @@ export default function ReportsPage() {
         <TableShimmer rows={6} />
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
-      ) : filtered.length === 0 ? (
-        data && data.total === 0 ? (
+      ) : reports.length === 0 ? (
+        hasActiveFilter ? (
+          <EmptyState icon={FileText} title="No matches for these filters" />
+        ) : (
           <EmptyState
             icon={FileText}
             title="No reports yet"
@@ -107,8 +108,6 @@ export default function ReportsPage() {
               </Button>
             }
           />
-        ) : (
-          <EmptyState icon={FileText} title="No matches for these filters" />
         )
       ) : (
         <Card>
@@ -125,7 +124,7 @@ export default function ReportsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r) => (
+                {reports.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>
                       <Link

@@ -11,6 +11,8 @@ from app.models.pagination import (
     LimitQuery,
     Page,
     PageQuery,
+    SortOrder,
+    resolve_sort,
     skip_for,
 )
 from app.models.schedule import ScheduleCreate, SchedulePublic, ScheduleUpdate
@@ -49,29 +51,51 @@ async def create_schedule(
     return SchedulePublic.from_schedule(schedule)
 
 
+_SCHEDULE_SORT_FIELDS = {
+    "createdAt": "createdAt",
+    "nextRunAt": "nextRunAt",
+    "lastRunAt": "lastRunAt",
+}
+
+
 @router.get("", response_model=Page[SchedulePublic])
 async def list_schedules(
     user: CurrentUser,
     schedules: Annotated[ScheduleRepository, Depends(schedule_repo)],
     product_id: Annotated[Optional[str], Query(alias="productId")] = None,
+    enabled: Annotated[
+        Optional[bool],
+        Query(description="Filter to active (true) or paused (false) schedules."),
+    ] = None,
     page: PageQuery = 1,
     limit: LimitQuery = DEFAULT_PAGE_SIZE,
+    sort_by: Annotated[
+        Optional[str],
+        Query(description=f"One of {sorted(_SCHEDULE_SORT_FIELDS)}."),
+    ] = None,
+    sort_order: SortOrder = SortOrder.DESC,
 ) -> Page[SchedulePublic]:
-    """Paginated list of schedules, optionally filtered by ``productId``."""
-    skip = skip_for(page, limit)
+    """Paginated list of schedules with optional filters + sort."""
     pid = to_object_id(product_id, field="productId") if product_id else None
-    if pid is not None:
-        items, total = await asyncio.gather(
-            schedules.list_for_product(
-                user_id=user.id, product_id=pid, skip=skip, limit=limit
-            ),
-            schedules.count_for_user(user.id, product_id=pid),
-        )
-    else:
-        items, total = await asyncio.gather(
-            schedules.list_for_user(user.id, skip=skip, limit=limit),
-            schedules.count_for_user(user.id),
-        )
+    sort_field, order = resolve_sort(
+        sort_by=sort_by,
+        sort_order=sort_order,
+        allowed=_SCHEDULE_SORT_FIELDS,
+        default_field="createdAt",
+    )
+    skip = skip_for(page, limit)
+    items, total = await asyncio.gather(
+        schedules.list_for_user(
+            user.id,
+            product_id=pid,
+            enabled=enabled,
+            sort_field=sort_field,
+            sort_order=order,
+            skip=skip,
+            limit=limit,
+        ),
+        schedules.count_for_user(user.id, product_id=pid, enabled=enabled),
+    )
     return Page[SchedulePublic].build(
         items=[SchedulePublic.from_schedule(s) for s in items],
         page=page,
