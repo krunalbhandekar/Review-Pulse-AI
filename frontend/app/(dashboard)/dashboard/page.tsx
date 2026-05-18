@@ -59,7 +59,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <PageHeader
         title={`Hi${user?.name ? `, ${user.name.split(" ")[0]}` : ""} 👋`}
-        description="Your review intelligence at a glance."
+        description="Your Review Pulse AI workspace at a glance."
         actions={
           <Button asChild>
             <Link href={ROUTES.products}>
@@ -111,11 +111,21 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/*
+            ``min-w-0`` on the grid cells is load-bearing: grid items
+            default to ``min-width: auto`` which makes a cell expand to
+            its child's intrinsic min-content width. Recharts' SVG has
+            a wider intrinsic min-width than a 360px phone viewport, so
+            without this the chart pushes the whole page wider than the
+            screen and forces horizontal scrolling. Once ``min-w-0`` lets
+            the cell shrink below its content, ``ResponsiveContainer``
+            measures the constrained width and the SVG sizes correctly.
+          */}
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+            <div className="min-w-0 lg:col-span-2">
               {loading ? <TableShimmer rows={5} /> : <TrendsChart />}
             </div>
-            <div>
+            <div className="min-w-0">
               {loading ? (
                 <TableShimmer rows={4} />
               ) : reports.length > 0 ? (

@@ -1,12 +1,12 @@
-# MCP — Multi-Tenant Google Docs + Gmail
+# Review Pulse AI — MCP
 
 A small FastAPI service that fronts Google Docs + Gmail for many users
 at once. Every request carries the `user_id` of the calling user; this
 service looks up that user's OAuth tokens in MongoDB, refreshes them
 if needed, and proxies the API call.
 
-The server is the only client; the frontend never talks to MCP
-directly.
+The Review Pulse AI server is the only client; the frontend never
+talks to MCP directly.
 
 ## Layout
 
@@ -64,7 +64,7 @@ binary, no chance of importing miniconda's site-packages.
 ### One-shot bootstrap
 
 ```bash
-cd multi-tenant/mcp
+cd Review-Pulse-AI/mcp
 cp .env.example .env       # fill in MONGODB_URI, OAuth client, shared secret
 make setup                 # wipes ./venv, recreates with python3.11, pip installs
 make dev                   # uvicorn --reload on :9000
@@ -73,7 +73,7 @@ make dev                   # uvicorn --reload on :9000
 ### Manual equivalent
 
 ```bash
-cd multi-tenant/mcp
+cd Review-Pulse-AI/mcp
 rm -rf venv
 python3.11 -m venv venv
 source venv/bin/activate
@@ -122,7 +122,7 @@ To make sure that can't happen:
    ```
 
 3. **Verify your venv with `make doctor`** — the printed
-   `executable:` must live under `multi-tenant/mcp/venv/bin/python`.
+   `executable:` must live under `Review-Pulse-AI/mcp/venv/bin/python`.
 
 ## Endpoints
 
@@ -155,7 +155,7 @@ re-authenticate via `/auth/google/login`.
 ## Render deployment
 
 1. Create a **Web Service** pointing at this folder
-   (`multi-tenant/mcp`). Keep it on a private network or behind an
+   (`Review-Pulse-AI/mcp`). Keep it on a private network or behind an
    IP allow-list if possible.
 2. Build command:
    ```

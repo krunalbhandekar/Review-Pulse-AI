@@ -3,7 +3,12 @@ import { cn } from "@/lib/utils";
 
 export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
+    // ``overflow-x-auto`` allows the table to commit to its natural
+    // width on narrow viewports rather than squishing every column;
+    // the page itself never scrolls horizontally — only the table does.
+    // ``-webkit-overflow-scrolling: touch`` is the default in modern
+    // mobile browsers, no need to set it.
+    <div className="relative w-full overflow-x-auto">
       <table
         ref={ref}
         className={cn("w-full caption-bottom text-sm", className)}
@@ -52,7 +57,10 @@ export const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-10 px-4 text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground",
+      // ``whitespace-nowrap`` keeps single-line uppercase headers from
+      // wrapping into garbled two-line stacks on mobile — the table's
+      // outer scroll container handles the overflow instead.
+      "h-10 whitespace-nowrap px-4 text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground",
       className,
     )}
     {...props}

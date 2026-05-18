@@ -15,21 +15,35 @@ export function LandingNav() {
           <span className="flex size-7 items-center justify-center rounded-md bg-foreground text-background">
             <Sparkles className="size-4" />
           </span>
-          <span className="text-sm font-semibold tracking-tight">{BRAND.name}</span>
+          <span className="text-sm font-semibold tracking-tight">
+            {BRAND.name}
+          </span>
         </Link>
         <nav className="ml-8 hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-          <a href="#features" className="transition-colors hover:text-foreground">Features</a>
-          <a href="#workflow" className="transition-colors hover:text-foreground">How it works</a>
-          <a href="#cta" className="transition-colors hover:text-foreground">Get started</a>
+          <a
+            href="#features"
+            className="transition-colors hover:text-foreground"
+          >
+            Features
+          </a>
+          <a
+            href="#workflow"
+            className="transition-colors hover:text-foreground"
+          >
+            How it works
+          </a>
+          <a href="#cta" className="transition-colors hover:text-foreground">
+            Get started
+          </a>
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
           <Button size="sm" variant="ghost" asChild>
             <Link href={ROUTES.login}>Sign in</Link>
           </Button>
-          <Button size="sm" onClick={startGoogleLogin}>
+          {/* <Button size="sm" onClick={startGoogleLogin}>
             Start free
-          </Button>
+          </Button> */}
         </div>
       </div>
     </header>

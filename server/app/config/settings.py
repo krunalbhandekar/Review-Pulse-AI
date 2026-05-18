@@ -42,7 +42,10 @@ IS_PRODUCTION: bool = ENVIRONMENT == "PRODUCTION"
 class AppConfig:
     """Core app identity and runtime knobs."""
 
-    APP_NAME: str = "Multi-Tenant-Review-Intelligence"
+    # ``APP_NAME`` is the user-facing string FastAPI shows on /docs and
+    # echoes in the /health response. Keep aligned with the frontend
+    # ``BRAND.name`` so Swagger + dashboard read as the same product.
+    APP_NAME: str = "Review Pulse AI"
     APP_VERSION: str = "0.1.0"
     # Default local-dev port. PaaS deployments (Render, Fly, Cloud Run)
     # inject ``$PORT`` and the uvicorn command line picks that up — this

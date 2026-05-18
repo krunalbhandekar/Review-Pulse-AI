@@ -19,10 +19,13 @@ export function StatCard({ label, value, icon: Icon, delta, hint }: StatCardProp
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-xl border bg-card p-5"
+      // ``min-w-0`` so a long ``hint`` or a ``value`` like a relative
+      // timestamp ("3 weeks ago") can't expand the grid track and push
+      // neighbouring cards off-screen.
+      className="min-w-0 rounded-xl border bg-card p-5"
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </p>
         {Icon && (
@@ -31,7 +34,9 @@ export function StatCard({ label, value, icon: Icon, delta, hint }: StatCardProp
           </div>
         )}
       </div>
-      <p className="mt-3 text-3xl font-semibold tracking-tight">{value}</p>
+      <p className="mt-3 truncate text-3xl font-semibold tracking-tight">
+        {value}
+      </p>
       <div className="mt-2 flex items-center gap-2 text-xs">
         {delta && (
           <span
@@ -47,7 +52,9 @@ export function StatCard({ label, value, icon: Icon, delta, hint }: StatCardProp
             {delta.value}
           </span>
         )}
-        {hint && <span className="text-muted-foreground">{hint}</span>}
+        {hint && (
+          <span className="truncate text-muted-foreground">{hint}</span>
+        )}
       </div>
     </motion.div>
   );

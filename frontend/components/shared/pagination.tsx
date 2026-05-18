@@ -33,8 +33,10 @@ export function Pagination({
   const label = unit ? `${total} ${unit}${total === 1 ? "" : "s"}` : `${total}`;
 
   return (
-    <div className="flex items-center justify-between text-sm text-muted-foreground">
-      <span>
+    // Mobile: status text on top, buttons stretched 50/50 below.
+    // sm+: original single-row layout with text on the left, buttons right.
+    <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+      <span className="truncate">
         Page {page} of {totalPages} · {label}
       </span>
       <div className="flex gap-2">
@@ -43,6 +45,7 @@ export function Pagination({
           size="sm"
           disabled={atFirst || busy}
           onClick={() => onPageChange(page - 1)}
+          className="flex-1 sm:flex-none"
         >
           Previous
         </Button>
@@ -51,6 +54,7 @@ export function Pagination({
           size="sm"
           disabled={atLast || busy}
           onClick={() => onPageChange(page + 1)}
+          className="flex-1 sm:flex-none"
         >
           Next
         </Button>

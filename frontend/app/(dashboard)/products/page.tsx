@@ -143,7 +143,7 @@ export default function ProductsPage() {
           <EmptyState
             icon={Package}
             title="No products yet"
-            description="Add your first product to start generating weekly review intelligence."
+            description="Add your first product to start generating weekly review digests with Review Pulse AI."
             action={
               <Button onClick={openCreate}>
                 <Plus /> Connect your first product

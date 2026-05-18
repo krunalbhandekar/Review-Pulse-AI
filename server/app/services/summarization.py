@@ -210,7 +210,7 @@ def _top_keywords(items: list[_PreparedReview], *, top_n: int = 10) -> list[str]
 def _fallback_summary(product_name: str, items: list[_PreparedReview]) -> str:
     if not items:
         return (
-            f"# {product_name} — Weekly Review Pulse\n\n"
+            f"# {product_name} — Review Pulse AI Weekly Digest\n\n"
             "No usable reviews were available for this period."
         )
     total = len(items)
@@ -223,7 +223,7 @@ def _fallback_summary(product_name: str, items: list[_PreparedReview]) -> str:
     keyword_line = ", ".join(keywords) if keywords else "—"
 
     return (
-        f"# {product_name} — Weekly Review Pulse (Fallback Summary)\n\n"
+        f"# {product_name} — Review Pulse AI Weekly Digest (Fallback Summary)\n\n"
         "_AI summarisation was unavailable; the figures below are computed "
         "directly from the sampled reviews._\n\n"
         "## Snapshot\n"
@@ -328,7 +328,7 @@ def _combine_chunk_summaries(product_name: str, chunks: list[str]) -> str:
         f"## Section {i + 1}\n{s}" for i, s in enumerate(chunks)
     )
     return (
-        f"# {product_name} — Weekly Review Pulse (Combined)\n\n"
+        f"# {product_name} — Review Pulse AI Weekly Digest (Combined)\n\n"
         "_Combined from per-chunk summaries; final merge skipped._\n\n"
         + body
     )
@@ -399,7 +399,7 @@ async def summarise_reviews(
         bound.info("summarisation.empty")
         return _finish(
             summary=(
-                f"# {product_name} — Weekly Review Pulse\n\n"
+                f"# {product_name} — Review Pulse AI Weekly Digest\n\n"
                 "No new reviews in the lookback window."
             ),
             quality="full",

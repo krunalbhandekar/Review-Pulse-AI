@@ -1,7 +1,8 @@
-# Frontend
+# Review Pulse AI — Frontend
 
 Next.js 15 (App Router) + TypeScript + Tailwind + shadcn-style primitives.
-The SaaS dashboard for the multi-tenant Review Intelligence platform.
+The SaaS dashboard for **Review Pulse AI** — AI-powered product review
+intelligence delivered to each user's own Google Doc + inbox.
 
 ## Layout
 
@@ -40,7 +41,7 @@ types/                      # auth, product, schedule, report
 ## Quick start
 
 ```bash
-cd multi-tenant/frontend
+cd Review-Pulse-AI/frontend
 pnpm install            # or npm install / yarn install
 cp .env.example .env.local
 # point NEXT_PUBLIC_API_URL at the FastAPI server (default http://localhost:8000)

@@ -35,7 +35,10 @@ IS_PRODUCTION: bool = ENVIRONMENT == "PRODUCTION"
 class AppConfig:
     """Service identity + runtime knobs."""
 
-    APP_NAME: str = "Multi-Tenant-MCP"
+    # User-facing string for FastAPI's /docs and /health. Suffix
+    # disambiguates from the main API server when both services'
+    # Swagger pages are open side by side.
+    APP_NAME: str = "Review Pulse AI — MCP"
     APP_VERSION: str = "0.1.0"
     PORT: int = 9000
     LOG_LEVEL: str = "INFO"

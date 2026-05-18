@@ -55,7 +55,7 @@ export function Hero() {
                 <span className="size-2.5 rounded-full bg-warning/70" />
                 <span className="size-2.5 rounded-full bg-success/70" />
                 <span className="ml-3 text-xs text-muted-foreground">
-                  {BRAND.name.toLowerCase()}.app / dashboard
+                  {BRAND.shortName.toLowerCase()}.app / dashboard
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-3">

@@ -37,6 +37,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app.APP_NAME,
+        description=(
+            "Review Pulse AI — Google Docs + Gmail proxy. "
+            "Multi-tenant token refresh on behalf of users."
+        ),
         version=settings.app.APP_VERSION,
         lifespan=lifespan,
     )

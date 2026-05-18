@@ -36,8 +36,15 @@ export const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4",
-        "border bg-card p-6 shadow-2xl duration-200 rounded-xl",
+        // Width: 100% minus a small viewport gutter on mobile, capped at
+        // max-w-lg on desktop. ``calc(100% - 2rem)`` is the equivalent
+        // of ``mx-4`` once translated to the centre.
+        "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4",
+        // Cap height so tall forms stay scrollable on short phones
+        // (landscape) rather than spilling past the viewport.
+        "max-h-[calc(100dvh-2rem)] overflow-y-auto",
+        // Tighter padding on mobile; same generous spacing from sm up.
+        "border bg-card p-4 shadow-2xl duration-200 rounded-xl sm:p-6",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",

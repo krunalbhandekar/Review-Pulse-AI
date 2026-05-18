@@ -1,4 +1,4 @@
-"""FastAPI entry point for the multi-tenant server."""
+"""FastAPI entry point for the Review Pulse AI server (multi-tenant)."""
 
 from __future__ import annotations
 
@@ -48,6 +48,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app.APP_NAME,
+        description="AI-Powered Product Review Intelligence — backend API.",
         version=settings.app.APP_VERSION,
         lifespan=lifespan,
     )

@@ -34,7 +34,12 @@ interface Props {
 
 export function ProductCard({ product, onEdit, onDelete, onRunNow, isRunning }: Props) {
   return (
-    <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
+    // ``min-w-0`` keeps the parent grid cell from being pushed past the
+    // viewport by a long monospace app ID inside this card. Without it,
+    // grid items default to ``min-width: auto`` and grow to fit their
+    // child's intrinsic min-content, so the page scrolls sideways even
+    // though every text node has ``truncate``.
+    <Card className="group relative min-w-0 overflow-hidden transition-shadow hover:shadow-md">
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-2">
           <Link

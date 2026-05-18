@@ -1,6 +1,7 @@
-# Server
+# Review Pulse AI — Server
 
-FastAPI app that hosts the user-facing API + the report scheduler.
+FastAPI app for **Review Pulse AI**: hosts the user-facing API + the
+report scheduler that drives weekly digests.
 
 ## Layout
 
@@ -76,7 +77,7 @@ imported by accident.
 ### One-shot bootstrap
 
 ```bash
-cd multi-tenant/server
+cd Review-Pulse-AI/server
 cp .env.example .env       # fill in MONGODB_URI, SESSION_SECRET, OAuth, …
 make setup                 # wipes ./venv, recreates with python3.11, pip installs
 make dev                   # uvicorn --reload on :8000
@@ -87,7 +88,7 @@ make dev                   # uvicorn --reload on :8000
 If you prefer raw commands (no `make`):
 
 ```bash
-cd multi-tenant/server
+cd Review-Pulse-AI/server
 rm -rf venv
 python3.11 -m venv venv
 source venv/bin/activate
@@ -141,14 +142,14 @@ sure that can't happen:
 
    ```bash
    make doctor
-   # executable: /…/multi-tenant/server/venv/bin/python
+   # executable: /…/Review-Pulse-AI/server/venv/bin/python
    # version: 3.11.x
    # fastapi  0.115.0
    # pydantic 2.9.2
    # uvicorn  0.30.6
    ```
 
-   If `executable:` is *not* under `multi-tenant/server/venv/bin`, the
+   If `executable:` is *not* under `Review-Pulse-AI/server/venv/bin`, the
    wrong Python is being used — re-run `make reset` with an explicit
    `PYTHON_BIN`.
 
@@ -177,7 +178,7 @@ The session cookie is `https_only` automatically whenever
 ## Render deployment
 
 1. Create a **Web Service** pointing at this folder
-   (`multi-tenant/server`).
+   (`Review-Pulse-AI/server`).
 2. Build command:
    ```
    pip install -r requirements.txt

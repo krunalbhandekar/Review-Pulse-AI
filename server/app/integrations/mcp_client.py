@@ -1,4 +1,4 @@
-"""Async HTTP client for the multi-tenant MCP service.
+"""Async HTTP client for the Review Pulse AI MCP service.
 
 Every request includes the calling user's ``user_id`` so the MCP server
 can pull the right tokens out of MongoDB. The server-side report

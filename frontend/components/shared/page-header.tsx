@@ -17,7 +17,9 @@ export function PageHeader({ title, description, actions, className }: PageHeade
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        {/* Slightly smaller title on phones so a long product name + back
+            action don't fight for vertical space. */}
+        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
           {title}
         </h1>
         {description && (
@@ -26,7 +28,12 @@ export function PageHeader({ title, description, actions, className }: PageHeade
           </p>
         )}
       </div>
-      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+      {actions && (
+        // ``flex-wrap`` covers the (rare) case where actions overflow
+        // the narrow viewport; ``shrink-0`` is dropped because at very
+        // small widths we'd rather let the button wrap than clip.
+        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+      )}
     </div>
   );
 }

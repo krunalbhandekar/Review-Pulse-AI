@@ -4,7 +4,7 @@ Stages
 ------
 1. Ingest reviews from Play/App stores (``services.ingestion``)
 2. Summarise via Groq (``services.summarization``)
-3. Deliver to Google Docs + Gmail via the multi-tenant MCP
+3. Deliver to Google Docs + Gmail via the Review Pulse AI MCP service
 4. Persist a Report row for the dashboard
 
 Failures at each stage are recorded on the Report (status + error) so
@@ -31,7 +31,10 @@ log = get_logger("service.report")
 
 
 def _report_title(product_name: str, when: datetime) -> str:
-    return f"{product_name} — Weekly Review Pulse — {when:%Y-%m-%d}"
+    # Pattern: "<product> — Review Pulse AI Weekly Digest — YYYY-MM-DD".
+    # Product name first so the Google Drive list groups by product
+    # alphabetically; brand and date come after for context.
+    return f"{product_name} — Review Pulse AI Weekly Digest — {when:%Y-%m-%d}"
 
 
 async def generate_report_for_product(
