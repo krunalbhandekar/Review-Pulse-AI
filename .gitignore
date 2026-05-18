@@ -1,13 +1,117 @@
-__pycache__/
-*.py[cod]
-*.egg-info/
-.venv/
+# =========================
+# OS / System files
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# =========================
+# Logs
+# =========================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Environment variables
+# =========================
 .env
 .env.*
 !.env.example
-*.log
-.DS_Store
+
+# =========================
+# Node.js dependencies
+# =========================
 node_modules/
-.idea/
+dist/
+build/
+out/
+.next/
+coverage/
+
+# Next.js
+.next/
+.vercel/
+
+# React (CRA/Vite)
+build/
+dist/
+
+# =========================
+# Package managers
+# =========================
+.pnp/
+.pnp.js
+.yarn/
+.yarn-integrity
+
+# =========================
+# TypeScript
+# =========================
+*.tsbuildinfo
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Python packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# =========================
+# Testing / Coverage
+# =========================
+.pytest_cache/
+.coverage
+htmlcov/
+
+# =========================
+# IDEs
+# =========================
 .vscode/
-*.swp
+.idea/
+*.iml
+
+# =========================
+# Docker
+# =========================
+docker-compose.override.yml
+
+# =========================
+# Misc
+# =========================
+.cache/
+.temp/
+tmp/
