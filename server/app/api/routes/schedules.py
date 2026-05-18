@@ -1,10 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Path, Query, Response, status
 
 from app.api.deps import CurrentUser, product_repo, schedule_repo
+from app.models.pagination import (
+    DEFAULT_PAGE_SIZE,
+    LimitQuery,
+    Page,
+    PageQuery,
+    skip_for,
+)
 from app.models.schedule import ScheduleCreate, SchedulePublic, ScheduleUpdate
 from app.repositories.product_repo import ProductRepository
 from app.repositories.schedule_repo import ScheduleRepository
@@ -41,18 +49,35 @@ async def create_schedule(
     return SchedulePublic.from_schedule(schedule)
 
 
-@router.get("", response_model=list[SchedulePublic])
+@router.get("", response_model=Page[SchedulePublic])
 async def list_schedules(
     user: CurrentUser,
     schedules: Annotated[ScheduleRepository, Depends(schedule_repo)],
     product_id: Annotated[Optional[str], Query(alias="productId")] = None,
-) -> list[SchedulePublic]:
-    if product_id:
-        pid = to_object_id(product_id, field="productId")
-        items = await schedules.list_for_product(user_id=user.id, product_id=pid)
+    page: PageQuery = 1,
+    limit: LimitQuery = DEFAULT_PAGE_SIZE,
+) -> Page[SchedulePublic]:
+    """Paginated list of schedules, optionally filtered by ``productId``."""
+    skip = skip_for(page, limit)
+    pid = to_object_id(product_id, field="productId") if product_id else None
+    if pid is not None:
+        items, total = await asyncio.gather(
+            schedules.list_for_product(
+                user_id=user.id, product_id=pid, skip=skip, limit=limit
+            ),
+            schedules.count_for_user(user.id, product_id=pid),
+        )
     else:
-        items = await schedules.list_for_user(user.id)
-    return [SchedulePublic.from_schedule(s) for s in items]
+        items, total = await asyncio.gather(
+            schedules.list_for_user(user.id, skip=skip, limit=limit),
+            schedules.count_for_user(user.id),
+        )
+    return Page[SchedulePublic].build(
+        items=[SchedulePublic.from_schedule(s) for s in items],
+        page=page,
+        limit=limit,
+        total=total,
+    )
 
 
 @router.get("/{schedule_id}", response_model=SchedulePublic)

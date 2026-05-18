@@ -14,13 +14,19 @@ import { fmtRelative } from "@/lib/format";
 import { ROUTES } from "@/lib/config";
 import type { Report } from "@/types/report";
 
-export function RecentActivity({ reports }: { reports: Report[] }) {
+interface RecentActivityProps {
+  reports: Report[];
+  /** Optional product-id → name map; renders product name under each row. */
+  productNameById?: Record<string, string>;
+}
+
+export function RecentActivity({ reports, productNameById }: RecentActivityProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div>
           <CardTitle>Recent activity</CardTitle>
-          <CardDescription>Latest report runs across your products</CardDescription>
+          <CardDescription>Latest 5 report runs across your products</CardDescription>
         </div>
         <Link
           href={ROUTES.reports}
@@ -30,24 +36,28 @@ export function RecentActivity({ reports }: { reports: Report[] }) {
         </Link>
       </CardHeader>
       <CardContent className="space-y-3">
-        {reports.slice(0, 5).map((r) => (
-          <Link
-            key={r.id}
-            href={ROUTES.report(r.id)}
-            className="group flex items-center gap-4 rounded-lg p-3 transition-colors hover:bg-accent/50"
-          >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-              <FileText className="size-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{r.reportTitle}</p>
-              <p className="text-xs text-muted-foreground">
-                {fmtRelative(r.generatedAt)} · {r.reviewCount} reviews
-              </p>
-            </div>
-            <StatusBadge status={r.status} />
-          </Link>
-        ))}
+        {reports.map((r) => {
+          const productName = productNameById?.[r.productId];
+          return (
+            <Link
+              key={r.id}
+              href={ROUTES.report(r.id)}
+              className="group flex items-center gap-4 rounded-lg p-3 transition-colors hover:bg-accent/50"
+            >
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                <FileText className="size-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{r.reportTitle}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {productName ? `${productName} · ` : ""}
+                  {fmtRelative(r.generatedAt)} · {r.reviewCount} reviews
+                </p>
+              </div>
+              <StatusBadge status={r.status} />
+            </Link>
+          );
+        })}
       </CardContent>
     </Card>
   );

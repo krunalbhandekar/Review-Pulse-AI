@@ -1,19 +1,31 @@
 import { api } from "@/services/api";
 import { MOCK_REPORTS, withMockFallback } from "@/lib/mock-data";
+import {
+  DEFAULT_PAGE_SIZE,
+  mockPage,
+  type Page,
+  type PageParams,
+} from "@/types/pagination";
 import type { Report } from "@/types/report";
 
-export interface ListReportsParams {
+export interface ListReportsParams extends PageParams {
   productId?: string;
-  limit?: number;
-  skip?: number;
 }
 
-export async function listReports(params: ListReportsParams = {}): Promise<Report[]> {
+export async function listReports(
+  params: ListReportsParams = {},
+): Promise<Page<Report>> {
+  const page = params.page ?? 1;
+  const limit = params.limit ?? DEFAULT_PAGE_SIZE;
+  const filtered = params.productId
+    ? MOCK_REPORTS.filter((r) => r.productId === params.productId)
+    : MOCK_REPORTS;
   return withMockFallback(
-    () => api<Report[]>("/reports", { query: { productId: params.productId, limit: params.limit, skip: params.skip } }),
-    params.productId
-      ? MOCK_REPORTS.filter((r) => r.productId === params.productId)
-      : MOCK_REPORTS,
+    () =>
+      api<Page<Report>>("/reports", {
+        query: { productId: params.productId, page, limit },
+      }),
+    mockPage(filtered, page, limit),
   );
 }
 

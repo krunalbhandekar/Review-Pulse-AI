@@ -9,6 +9,7 @@ import { CardListShimmer } from "@/components/shared/loading-shimmer";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductFormDialog } from "@/components/products/product-form-dialog";
+import { Pagination } from "@/components/shared/pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,10 +18,19 @@ import {
 } from "@/hooks/use-products";
 import { useRunReport } from "@/hooks/use-reports";
 import { useToast } from "@/hooks/use-toast";
+import { DEFAULT_PAGE_SIZE } from "@/types/pagination";
 import type { Product } from "@/types/product";
 
 export default function ProductsPage() {
-  const { data: products = [], isLoading, isError, refetch } = useProducts();
+  const [page, setPage] = React.useState(1);
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useProducts({ page, limit: DEFAULT_PAGE_SIZE });
+  const products = data?.items ?? [];
   const deleteProduct = useDeleteProduct();
   const runReport = useRunReport();
   const { toast } = useToast();
@@ -30,6 +40,9 @@ export default function ProductsPage() {
   const [editing, setEditing] = React.useState<Product | null>(null);
   const [toDelete, setToDelete] = React.useState<Product | null>(null);
 
+  // Local-only search across the current page. The dataset is paginated
+  // server-side, so searching across pages would need a backend filter
+  // param — out of scope for this pass.
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return products;
@@ -128,18 +141,30 @@ export default function ProductsPage() {
           />
         )
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((p) => (
-            <ProductCard
-              key={p.id}
-              product={p}
-              onEdit={openEdit}
-              onDelete={setToDelete}
-              onRunNow={runNow}
-              isRunning={runReport.isPending}
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((p) => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                onEdit={openEdit}
+                onDelete={setToDelete}
+                onRunNow={runNow}
+                isRunning={runReport.isPending}
+              />
+            ))}
+          </div>
+          {data && (
+            <Pagination
+              page={data.page}
+              totalPages={data.total_pages}
+              total={data.total}
+              unit="product"
+              onPageChange={setPage}
+              busy={isFetching}
             />
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       <ProductFormDialog

@@ -1,10 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Response, status
 
 from app.api.deps import CurrentUser, product_repo, schedule_repo
+from app.models.pagination import (
+    DEFAULT_PAGE_SIZE,
+    LimitQuery,
+    Page,
+    PageQuery,
+    skip_for,
+)
 from app.models.product import ProductCreate, ProductPublic, ProductUpdate
 from app.repositories.product_repo import ProductRepository
 from app.repositories.schedule_repo import ScheduleRepository
@@ -33,13 +41,25 @@ async def create_product(
     return ProductPublic.from_product(product)
 
 
-@router.get("", response_model=list[ProductPublic])
+@router.get("", response_model=Page[ProductPublic])
 async def list_products(
     user: CurrentUser,
     repo: Annotated[ProductRepository, Depends(product_repo)],
-) -> list[ProductPublic]:
-    products = await repo.list_for_user(user.id)
-    return [ProductPublic.from_product(p) for p in products]
+    page: PageQuery = 1,
+    limit: LimitQuery = DEFAULT_PAGE_SIZE,
+) -> Page[ProductPublic]:
+    """Paginated list of the caller's products, newest first."""
+    skip = skip_for(page, limit)
+    products, total = await asyncio.gather(
+        repo.list_for_user(user.id, skip=skip, limit=limit),
+        repo.count_for_user(user.id),
+    )
+    return Page[ProductPublic].build(
+        items=[ProductPublic.from_product(p) for p in products],
+        page=page,
+        limit=limit,
+        total=total,
+    )
 
 
 @router.get("/{product_id}", response_model=ProductPublic)

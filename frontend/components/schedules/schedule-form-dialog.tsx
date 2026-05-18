@@ -81,7 +81,8 @@ export function ScheduleFormDialog({
   schedule,
   defaultProductId,
 }: Props) {
-  const { data: products = [] } = useProducts();
+  const { data: productsPage } = useProducts({ limit: 100 });
+  const products = productsPage?.items ?? [];
   const create = useCreateSchedule();
   const update = useUpdateSchedule();
   const { toast } = useToast();

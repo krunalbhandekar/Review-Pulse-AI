@@ -1,10 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Path, Query, status
 
 from app.api.deps import CurrentUser, product_repo, report_repo
+from app.models.pagination import (
+    DEFAULT_PAGE_SIZE,
+    LimitQuery,
+    Page,
+    PageQuery,
+    skip_for,
+)
 from app.models.report import ReportPublic
 from app.repositories.product_repo import ProductRepository
 from app.repositories.report_repo import ReportRepository
@@ -14,19 +22,31 @@ from app.utils.ids import to_object_id
 router = APIRouter(prefix="/reports", tags=["reports"])
 
 
-@router.get("", response_model=list[ReportPublic])
+@router.get("", response_model=Page[ReportPublic])
 async def list_reports(
     user: CurrentUser,
     reports: Annotated[ReportRepository, Depends(report_repo)],
     product_id: Annotated[Optional[str], Query(alias="productId")] = None,
-    limit: Annotated[int, Query(ge=1, le=200)] = 50,
-    skip: Annotated[int, Query(ge=0)] = 0,
-) -> list[ReportPublic]:
+    page: PageQuery = 1,
+    limit: LimitQuery = DEFAULT_PAGE_SIZE,
+) -> Page[ReportPublic]:
+    """Paginated list of reports, newest first.
+
+    Optional ``productId`` filter narrows to a single product. The
+    dashboard's "Recent activity" panel uses ``page=1&limit=5``.
+    """
     pid = to_object_id(product_id, field="productId") if product_id else None
-    items = await reports.list_for_user(
-        user.id, product_id=pid, limit=limit, skip=skip
+    skip = skip_for(page, limit)
+    items, total = await asyncio.gather(
+        reports.list_for_user(user.id, product_id=pid, limit=limit, skip=skip),
+        reports.count_for_user(user.id, product_id=pid),
     )
-    return [ReportPublic.from_report(r) for r in items]
+    return Page[ReportPublic].build(
+        items=[ReportPublic.from_report(r) for r in items],
+        page=page,
+        limit=limit,
+        total=total,
+    )
 
 
 @router.get("/{report_id}", response_model=ReportPublic)

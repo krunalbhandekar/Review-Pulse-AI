@@ -1,9 +1,22 @@
 import { api } from "@/services/api";
 import { MOCK_PRODUCTS, withMockFallback } from "@/lib/mock-data";
+import {
+  DEFAULT_PAGE_SIZE,
+  mockPage,
+  type Page,
+  type PageParams,
+} from "@/types/pagination";
 import type { Product, ProductInput } from "@/types/product";
 
-export async function listProducts(): Promise<Product[]> {
-  return withMockFallback(() => api<Product[]>("/products"), MOCK_PRODUCTS);
+export async function listProducts(
+  params: PageParams = {},
+): Promise<Page<Product>> {
+  const page = params.page ?? 1;
+  const limit = params.limit ?? DEFAULT_PAGE_SIZE;
+  return withMockFallback(
+    () => api<Page<Product>>("/products", { query: { page, limit } }),
+    mockPage(MOCK_PRODUCTS, page, limit),
+  );
 }
 
 export async function getProduct(id: string): Promise<Product> {

@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { TableShimmer } from "@/components/shared/loading-shimmer";
+import { Pagination } from "@/components/shared/pagination";
 import { ReportFilters } from "@/components/reports/report-filters";
 import { StatusBadge } from "@/components/reports/status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -24,39 +25,53 @@ import { useProducts } from "@/hooks/use-products";
 import { useReports } from "@/hooks/use-reports";
 import { fmtDateTime, fmtCount } from "@/lib/format";
 import { ROUTES } from "@/lib/config";
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@/types/pagination";
 import type { Report, ReportStatus } from "@/types/report";
 
-const PAGE_SIZE = 20;
-
 export default function ReportsPage() {
-  const { data: reports = [], isLoading, isError, refetch } = useReports();
-  const { data: products = [] } = useProducts();
+  const [page, setPage] = React.useState(1);
+  const [productId, setProductId] = React.useState<string | "all">("all");
+
+  // Reports are paginated server-side by productId. Status + free-text
+  // search remain client-side filters over the current page; they reset
+  // the page back to 1 when changed so the user always starts at the top
+  // of a filtered view.
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useReports({
+    page,
+    limit: DEFAULT_PAGE_SIZE,
+    productId: productId === "all" ? undefined : productId,
+  });
+  const reports = data?.items ?? [];
+
+  const { data: productsPage } = useProducts({ limit: MAX_PAGE_SIZE });
+  const products = productsPage?.items ?? [];
 
   const [search, setSearch] = React.useState("");
   const [status, setStatus] = React.useState<ReportStatus | "all">("all");
-  const [productId, setProductId] = React.useState<string | "all">("all");
-  const [page, setPage] = React.useState(0);
 
   const productNameById = React.useMemo(
     () => Object.fromEntries(products.map((p) => [p.id, p.productName])),
     [products],
   );
 
+  // Client-side narrowing on top of the current page.
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     return reports.filter((r) => {
       if (status !== "all" && r.status !== status) return false;
-      if (productId !== "all" && r.productId !== productId) return false;
       if (q && !r.reportTitle.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [reports, search, status, productId]);
-
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  }, [reports, search, status]);
 
   React.useEffect(() => {
-    setPage(0);
+    setPage(1);
   }, [search, status, productId]);
 
   return (
@@ -81,7 +96,7 @@ export default function ReportsPage() {
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : filtered.length === 0 ? (
-        reports.length === 0 ? (
+        data && data.total === 0 ? (
           <EmptyState
             icon={FileText}
             title="No reports yet"
@@ -110,7 +125,7 @@ export default function ReportsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paged.map((r) => (
+                {filtered.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>
                       <Link
@@ -150,31 +165,15 @@ export default function ReportsPage() {
         </Card>
       )}
 
-      {filtered.length > PAGE_SIZE && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            Page {page + 1} of {totalPages} · {filtered.length} report
-            {filtered.length === 1 ? "" : "s"}
-          </span>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 0}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+      {data && (
+        <Pagination
+          page={data.page}
+          totalPages={data.total_pages}
+          total={data.total}
+          unit="report"
+          onPageChange={setPage}
+          busy={isFetching}
+        />
       )}
     </div>
   );

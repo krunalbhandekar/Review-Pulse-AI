@@ -23,6 +23,7 @@ import {
 import { useCreateProduct, useProducts, useUpdateProduct } from "@/hooks/use-products";
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULTS } from "@/lib/config";
+import { MAX_PAGE_SIZE } from "@/types/pagination";
 import type { Product, ProductInput } from "@/types/product";
 
 interface ProductFormDialogProps {
@@ -47,7 +48,11 @@ export function ProductFormDialog({
   product,
 }: ProductFormDialogProps) {
   const isEdit = Boolean(product);
-  const { data: products = [] } = useProducts();
+  // Used only for the local duplicate-name check; the server's unique
+  // index is the actual enforcement. MAX_PAGE_SIZE is enough to cover
+  // the realistic small-tenant case without paying for a full list endpoint.
+  const { data: productsPage } = useProducts({ limit: MAX_PAGE_SIZE });
+  const products = productsPage?.items ?? [];
   const create = useCreateProduct();
   const update = useUpdateProduct();
   const { toast } = useToast();

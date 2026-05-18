@@ -40,8 +40,12 @@ export default function ProductDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { data: product, isLoading, isError, refetch } = useProduct(params.id);
-  const { data: schedules = [] } = useSchedules(params.id);
-  const { data: reports = [] } = useReports(params.id);
+  // Detail page only needs the first page of each — schedules per product
+  // is tiny (usually 1), and reports show the most-recent slice.
+  const { data: schedulesPage } = useSchedules({ productId: params.id });
+  const schedules = schedulesPage?.items ?? [];
+  const { data: reportsPage } = useReports({ productId: params.id });
+  const reports = reportsPage?.items ?? [];
   const run = useRunReport();
   const { toast } = useToast();
   const [editOpen, setEditOpen] = React.useState(false);

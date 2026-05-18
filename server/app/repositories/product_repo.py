@@ -40,9 +40,24 @@ class ProductRepository:
             raise NotFoundError("Product not found")
         return Product(**doc)
 
-    async def list_for_user(self, user_id: ObjectId) -> list[Product]:
+    async def list_for_user(
+        self,
+        user_id: ObjectId,
+        *,
+        skip: int = 0,
+        limit: int = 0,
+    ) -> list[Product]:
+        # ``limit=0`` in Motor means "no limit" — preserved for the
+        # handful of internal callers that still want the full set.
         cursor = self._col.find({"userId": user_id}).sort("createdAt", -1)
+        if skip:
+            cursor = cursor.skip(skip)
+        if limit:
+            cursor = cursor.limit(limit)
         return [Product(**doc) async for doc in cursor]
+
+    async def count_for_user(self, user_id: ObjectId) -> int:
+        return await self._col.count_documents({"userId": user_id})
 
     async def update(
         self, *, user_id: ObjectId, product_id: ObjectId, data: ProductUpdate

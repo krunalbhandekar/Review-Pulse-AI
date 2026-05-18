@@ -51,15 +51,45 @@ class ScheduleRepository:
         doc = await self._col.find_one({"_id": schedule_id})
         return Schedule(**doc) if doc else None
 
-    async def list_for_user(self, user_id: ObjectId) -> list[Schedule]:
+    async def list_for_user(
+        self,
+        user_id: ObjectId,
+        *,
+        skip: int = 0,
+        limit: int = 0,
+    ) -> list[Schedule]:
         cursor = self._col.find({"userId": user_id}).sort("createdAt", -1)
+        if skip:
+            cursor = cursor.skip(skip)
+        if limit:
+            cursor = cursor.limit(limit)
         return [Schedule(**doc) async for doc in cursor]
 
     async def list_for_product(
-        self, *, user_id: ObjectId, product_id: ObjectId
+        self,
+        *,
+        user_id: ObjectId,
+        product_id: ObjectId,
+        skip: int = 0,
+        limit: int = 0,
     ) -> list[Schedule]:
-        cursor = self._col.find({"userId": user_id, "productId": product_id})
+        cursor = (
+            self._col.find({"userId": user_id, "productId": product_id})
+            .sort("createdAt", -1)
+        )
+        if skip:
+            cursor = cursor.skip(skip)
+        if limit:
+            cursor = cursor.limit(limit)
         return [Schedule(**doc) async for doc in cursor]
+
+    async def count_for_user(
+        self, user_id: ObjectId, *, product_id: Optional[ObjectId] = None
+    ) -> int:
+        query: dict = {"userId": user_id}
+        if product_id is not None:
+            query["productId"] = product_id
+        return await self._col.count_documents(query)
 
     async def update(
         self,

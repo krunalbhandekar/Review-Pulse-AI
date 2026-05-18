@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { TableShimmer } from "@/components/shared/loading-shimmer";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { Pagination } from "@/components/shared/pagination";
 import { ScheduleFormDialog } from "@/components/schedules/schedule-form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ import { useRunReport } from "@/hooks/use-reports";
 import { useToast } from "@/hooks/use-toast";
 import { fmtDateTime, fmtRelative } from "@/lib/format";
 import { ROUTES } from "@/lib/config";
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@/types/pagination";
 import type { Schedule } from "@/types/schedule";
 
 function describeCadence(s: Schedule): string {
@@ -49,8 +51,19 @@ function describeCadence(s: Schedule): string {
 }
 
 export default function SchedulesPage() {
-  const { data: schedules = [], isLoading, isError, refetch } = useSchedules();
-  const { data: products = [] } = useProducts();
+  const [page, setPage] = React.useState(1);
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useSchedules({ page, limit: DEFAULT_PAGE_SIZE });
+  const schedules = data?.items ?? [];
+  // The product picker needs the full list, not a single page, so we
+  // fetch up to MAX_PAGE_SIZE products here.
+  const { data: productsPage } = useProducts({ limit: MAX_PAGE_SIZE });
+  const products = productsPage?.items ?? [];
   const update = useUpdateSchedule();
   const remove = useDeleteSchedule();
   const run = useRunReport();
@@ -229,6 +242,17 @@ export default function SchedulesPage() {
             </Table>
           </CardContent>
         </Card>
+      )}
+
+      {data && (
+        <Pagination
+          page={data.page}
+          totalPages={data.total_pages}
+          total={data.total}
+          unit="schedule"
+          onPageChange={setPage}
+          busy={isFetching}
+        />
       )}
 
       <ScheduleFormDialog

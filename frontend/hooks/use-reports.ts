@@ -1,17 +1,35 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getReport, listReports, runReportNow } from "@/services/reports";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  getReport,
+  listReports,
+  runReportNow,
+  type ListReportsParams,
+} from "@/services/reports";
+import { DEFAULT_PAGE_SIZE } from "@/types/pagination";
 
-export const reportsKey = (productId?: string) =>
-  productId
-    ? (["reports", { productId }] as const)
-    : (["reports"] as const);
+export const reportsKey = (params?: ListReportsParams) =>
+  [
+    "reports",
+    "list",
+    {
+      productId: params?.productId ?? null,
+      page: params?.page ?? 1,
+      limit: params?.limit ?? DEFAULT_PAGE_SIZE,
+    },
+  ] as const;
 
-export function useReports(productId?: string) {
+export function useReports(params: ListReportsParams = {}) {
   return useQuery({
-    queryKey: reportsKey(productId),
-    queryFn: () => listReports({ productId }),
+    queryKey: reportsKey(params),
+    queryFn: () => listReports(params),
+    placeholderData: keepPreviousData,
   });
 }
 
