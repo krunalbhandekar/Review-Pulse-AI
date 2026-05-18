@@ -1,0 +1,115 @@
+# =============================================================================
+# Render Blueprint — Review-Pulse-AI / Main Server (FastAPI + APScheduler)
+# =============================================================================
+#
+# Deploy with Render Blueprints:
+#
+#   1. Push this file at `server/render.yaml` to the repository's default branch.
+#   2. In the Render dashboard: New + → Blueprint → connect this repo →
+#      point at the `server/` directory. Render parses `render.yaml` and
+#      provisions the service.
+#   3. After the first apply, fill in the secret env vars (any var marked
+#      `sync: false` below) in the Render dashboard. Render does NOT read
+#      secrets from this file — that's by design.
+#   4. Re-deploy.
+#
+# Monorepo note: the repo contains both `server/` and `mcp/`. Each service
+# has its own `render.yaml` co-located with its code. When importing a
+# Blueprint, point Render at the directory whose blueprint you want to
+# apply — the `rootDir: .` here means "this file's directory is the build
+# context", i.e. `server/`.
+#
+# Scheduler note: this service runs an in-process APScheduler dispatcher
+# (see app/scheduler/). Running multiple instances would fire every job
+# multiple times. Keep `numInstances: 1` and do NOT enable autoscaling.
+# If you outgrow a single instance, externalise the scheduler before
+# scaling out.
+#
+# Persistent disk: not required. State lives in MongoDB Atlas (see
+# MONGODB_URI). Render's filesystem is ephemeral and that's fine.
+#
+# Free-plan caveat: Render's free plan sleeps the service after 15 min of
+# inactivity, which silently kills the APScheduler tick loop. Use at
+# least the Starter plan for any environment where scheduled reports
+# must actually fire.
+# =============================================================================
+
+services:
+  - type: web
+    name: review-pulse-ai-server
+    runtime: python
+    plan: free
+    region: oregon # match the MCP service's region to minimise latency
+    branch: main
+    autoDeploy: true
+    rootDir: . # this file lives at server/render.yaml, so . == server/
+    numInstances: 1 # APScheduler is in-process; keep at 1 (see header)
+
+    buildCommand: pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+    # Render injects $PORT; bind to 0.0.0.0 so it's reachable from the LB.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    healthCheckPath: /health
+
+    envVars:
+      # ---- Runtime ---------------------------------------------------------
+      - key: PYTHON_VERSION
+        value: 3.11.9 # matches .python-version
+      - key: ENVIRONMENT
+        value: PRODUCTION # flips IS_PRODUCTION=true (HTTPS cookies, JSON logs, real email sends)
+
+      # ---- Secrets (set values in the Render dashboard) --------------------
+      # MongoDB Atlas connection string. MUST include the DB name as the path,
+      # e.g. mongodb+srv://USER:PASS@cluster.mongodb.net/mt_review_intelligence
+      - key: MONGODB_URI
+        sync: false
+
+      # Signs the session cookie. Generate with:
+      #   python -c "import secrets; print(secrets.token_urlsafe(48))"
+      - key: SESSION_SECRET
+        sync: false
+
+      # Google OAuth client (same client used by the MCP service).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+      # Must match an Authorised redirect URI on the Google OAuth client.
+      # Example: https://review-pulse-server.onrender.com/auth/google/callback
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+
+      # Where to bounce the browser after login / logout. CORS allowed
+      # origins are *derived* from these — there is no FRONTEND_ORIGINS var.
+      - key: POST_LOGIN_REDIRECT
+        sync: false
+      - key: POST_LOGOUT_REDIRECT
+        sync: false
+
+      # Downstream MCP service URL. Wire to the public URL of the MCP
+      # Render service (or its private network address, if you put both
+      # services on the same private network).
+      - key: MCP_SERVER_URL
+        sync: false
+
+      # Symmetric secret used as X-MCP-Secret on every MCP call.
+      # MUST match MCP_SHARED_SECRET on the mcp service.
+      - key: MCP_SHARED_SECRET
+        sync: false
+
+      # Groq summarisation API key (console.groq.com).
+      - key: GROQ_API_KEY
+        sync: false
+
+# =============================================================================
+# Env vars you intentionally do NOT set here:
+#
+#   PORT, APP_NAME, LOG_LEVEL, IS_PRODUCTION, MONGODB_DB, FRONTEND_ORIGINS,
+#   SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS, MCP_TIMEOUT_SECONDS,
+#   MCP_MAX_RETRIES, GROQ_MODEL, SCHEDULER_POLL_INTERVAL
+#
+# - PORT is injected by Render.
+# - IS_PRODUCTION is derived from ENVIRONMENT (see app/config/settings.py).
+# - The rest are code constants in app/config/settings.py — edit them in a PR.
+# =============================================================================

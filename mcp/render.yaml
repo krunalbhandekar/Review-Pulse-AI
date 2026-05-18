@@ -1,0 +1,80 @@
+# =============================================================================
+# Render Blueprint — Review-Pulse-AI / MCP service (FastAPI, Google Docs+Gmail)
+# =============================================================================
+#
+# Deploy with Render Blueprints:
+#
+#   1. Push this file at `mcp/render.yaml` to the repository's default branch.
+#   2. In the Render dashboard: New + → Blueprint → connect this repo →
+#      point at the `mcp/` directory. Render parses `render.yaml` and
+#      provisions the service.
+#   3. After the first apply, fill in the secret env vars (any var marked
+#      `sync: false` below) in the Render dashboard.
+#   4. Re-deploy.
+#
+# Monorepo note: this is one of two Blueprints in the repo. The main API
+# server has its own `server/render.yaml`. Apply each Blueprint separately
+# in Render so that the two services have independent lifecycles.
+#
+# Networking: MCP is only ever called by the server, never by the
+# browser. Prefer Render's private network if available, or at minimum
+# keep `MCP_SHARED_SECRET` long and unique. There is no public auth
+# beyond that shared secret on non-health endpoints.
+#
+# Scaling: MCP is stateless (state lives in MongoDB Atlas), so you CAN
+# safely run multiple instances if traffic justifies it. Default to 1.
+#
+# Persistent disk: not required. No filesystem state.
+# =============================================================================
+
+services:
+  - type: web
+    name: review-pulse-ai-mcp
+    runtime: python
+    plan: free
+    region: oregon # match the server's region to minimise latency
+    rootDir: . # this file lives at mcp/render.yaml, so . == mcp/
+    branch: main
+    autoDeploy: true
+    numInstances: 1 # stateless; bump if you need throughput
+
+    buildCommand: pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+    # Render injects $PORT; bind to 0.0.0.0 so it's reachable from the LB.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    healthCheckPath: /health
+
+    envVars:
+      # ---- Runtime ---------------------------------------------------------
+      - key: PYTHON_VERSION
+        value: 3.11.9 # matches .python-version
+      - key: ENVIRONMENT
+        value: PRODUCTION # flips IS_PRODUCTION=true (JSON logs)
+
+      # ---- Secrets (set values in the Render dashboard) --------------------
+      # Same Mongo cluster the server uses. MUST include the DB name as the
+      # path: mongodb+srv://USER:PASS@cluster.mongodb.net/mt_review_intelligence
+      - key: MONGODB_URI
+        sync: false
+
+      # Same Google OAuth client the server uses. MCP needs the client
+      # secret to refresh per-user offline-access tokens.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+      # Symmetric secret the server sends as X-MCP-Secret on every call.
+      # MUST match MCP_SHARED_SECRET on the main server service.
+      - key: MCP_SHARED_SECRET
+        sync: false
+
+# =============================================================================
+# Env vars you intentionally do NOT set here:
+#
+#   PORT, APP_NAME, LOG_LEVEL, IS_PRODUCTION, MONGODB_DB
+#
+# - PORT is injected by Render.
+# - IS_PRODUCTION is derived from ENVIRONMENT (see app/config.py).
+# - The rest are code constants in app/config.py — edit them in a PR.
+# =============================================================================

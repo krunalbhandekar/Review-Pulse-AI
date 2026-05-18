@@ -1,0 +1,26 @@
+# Keep the Render build context small.
+
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets — Render reads env from the dashboard.
+.env
+.env.*
+!.env.example
+
+# Editor / OS junk
+.DS_Store
+.idea/
+.vscode/
+
+# Docs / scripts that don't need to ship to the runtime.
+README.md
+Makefile
+run.sh
