@@ -52,11 +52,14 @@ const config: Config = {
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
+          "on-tint": "hsl(var(--success-on-tint))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+          "on-tint": "hsl(var(--warning-on-tint))",
         },
+        "destructive-on-tint": "hsl(var(--destructive-on-tint))",
       },
       borderRadius: {
         lg: "var(--radius)",

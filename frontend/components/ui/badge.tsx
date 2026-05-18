@@ -10,12 +10,14 @@ const badgeVariants = cva(
         default: "border-transparent bg-primary text-primary-foreground",
         secondary: "border-transparent bg-secondary text-secondary-foreground",
         outline: "text-foreground",
-        success:
-          "border-transparent bg-success/15 text-success [&]:dark:text-success",
-        warning:
-          "border-transparent bg-warning/15 text-warning-foreground dark:text-warning",
+        // Status variants: bg uses a 15% wash, text uses the theme-aware
+        // *-on-tint token so contrast stays >=5:1 in light mode (the brand
+        // colours alone read at <2:1 against pale tints on white). Dark
+        // mode keeps the vibrant brand tone via the same token.
+        success: "border-transparent bg-success/15 text-success-on-tint",
+        warning: "border-transparent bg-warning/15 text-warning-on-tint",
         destructive:
-          "border-transparent bg-destructive/15 text-destructive",
+          "border-transparent bg-destructive/15 text-destructive-on-tint",
         muted: "border-transparent bg-muted text-muted-foreground",
       },
     },

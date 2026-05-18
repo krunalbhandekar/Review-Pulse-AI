@@ -34,6 +34,17 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 98%;
 
+    /*
+     * "On-tint" foregrounds — used when the colour appears as a 10–15%
+     * opacity wash (badges, status pills). The brand --success/--warning/
+     * --destructive tones don't have enough contrast on a near-white
+     * tint (warning is the worst: amber on pale peach, ≈1.9:1). These
+     * darker shades hit ≥5:1 against the tinted background.
+     */
+    --success-on-tint: 142 70% 26%;
+    --warning-on-tint: 28 80% 30%;
+    --destructive-on-tint: 0 70% 38%;
+
     --border: 240 6% 90%;
     --input: 240 6% 90%;
     --ring: 240 6% 10%;
@@ -71,6 +82,16 @@
 
     --warning: 38 92% 50%;
     --warning-foreground: 240 10% 4%;
+
+    /*
+     * Dark mode tint is 15% colour over near-black — the vibrant brand
+     * tones already read well, so the on-tint vars mirror the brand
+     * values here. Keeping them as separate tokens means the badge
+     * variant can use a single class with no dark: modifier.
+     */
+    --success-on-tint: 142 71% 55%;
+    --warning-on-tint: 38 92% 60%;
+    --destructive-on-tint: 0 84% 65%;
 
     --border: 240 5% 15%;
     --input: 240 5% 15%;
