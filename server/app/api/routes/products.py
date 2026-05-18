@@ -1,0 +1,74 @@
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Path, Response, status
+
+from app.api.deps import CurrentUser, product_repo, schedule_repo
+from app.models.product import ProductCreate, ProductPublic, ProductUpdate
+from app.repositories.product_repo import ProductRepository
+from app.repositories.schedule_repo import ScheduleRepository
+from app.utils.ids import to_object_id
+
+router = APIRouter(prefix="/products", tags=["products"])
+
+
+@router.post("", response_model=ProductPublic, status_code=status.HTTP_201_CREATED)
+async def create_product(
+    payload: ProductCreate,
+    user: CurrentUser,
+    repo: Annotated[ProductRepository, Depends(product_repo)],
+) -> ProductPublic:
+    product = await repo.create(user_id=user.id, data=payload)
+    return ProductPublic.from_product(product)
+
+
+@router.get("", response_model=list[ProductPublic])
+async def list_products(
+    user: CurrentUser,
+    repo: Annotated[ProductRepository, Depends(product_repo)],
+) -> list[ProductPublic]:
+    products = await repo.list_for_user(user.id)
+    return [ProductPublic.from_product(p) for p in products]
+
+
+@router.get("/{product_id}", response_model=ProductPublic)
+async def get_product(
+    user: CurrentUser,
+    repo: Annotated[ProductRepository, Depends(product_repo)],
+    product_id: Annotated[str, Path()],
+) -> ProductPublic:
+    pid = to_object_id(product_id, field="product_id")
+    product = await repo.get(user_id=user.id, product_id=pid)
+    return ProductPublic.from_product(product)
+
+
+@router.patch("/{product_id}", response_model=ProductPublic)
+async def update_product(
+    payload: ProductUpdate,
+    user: CurrentUser,
+    repo: Annotated[ProductRepository, Depends(product_repo)],
+    product_id: Annotated[str, Path()],
+) -> ProductPublic:
+    pid = to_object_id(product_id, field="product_id")
+    product = await repo.update(user_id=user.id, product_id=pid, data=payload)
+    return ProductPublic.from_product(product)
+
+
+@router.delete(
+    "/{product_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def delete_product(
+    user: CurrentUser,
+    repo: Annotated[ProductRepository, Depends(product_repo)],
+    schedules: Annotated[ScheduleRepository, Depends(schedule_repo)],
+    product_id: Annotated[str, Path()],
+) -> Response:
+    pid = to_object_id(product_id, field="product_id")
+    # Cascade — schedules belong to a product and are useless without it.
+    # Reports are kept (historical record) but orphaned safely.
+    await schedules.delete_by_product(user_id=user.id, product_id=pid)
+    await repo.delete(user_id=user.id, product_id=pid)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
