@@ -18,9 +18,8 @@ from typing import Optional
 
 from bson import ObjectId
 
-from app.config import settings
 from app.integrations.mcp_client import MCPClient
-from app.models.product import Product
+from app.models.product import EmailMode, Product
 from app.models.report import Report, ReportStatus
 from app.repositories.report_repo import ReportRepository
 from app.services.ingestion import gather_reviews
@@ -175,6 +174,11 @@ async def generate_report_for_product(
             delivery_meta["doc_error"] = str(exc)
 
     if product.emailTo:
+        # Per-product setting wins. ``draft`` (the safe default for a new
+        # product) creates a Gmail draft; ``send`` actually sends. The
+        # global ENVIRONMENT flag intentionally no longer gates this —
+        # operators control delivery per-product from the dashboard.
+        draft_only = product.emailMode != EmailMode.SEND
         try:
             email_body = report.summary
             if report.googleDocUrl:
@@ -184,8 +188,13 @@ async def generate_report_for_product(
                 to=product.emailTo,
                 subject=report.reportTitle,
                 body=email_body,
-                draft_only=not settings.is_production,
+                draft_only=draft_only,
                 idempotency_key=f"mail-{product.id}-{int(started_at.timestamp())}",
+            )
+            # Echo the resolved mode back to the dashboard so reports/<id>
+            # can show "Draft" vs "Sent" without re-reading the product.
+            email_result["mode"] = (
+                EmailMode.DRAFT.value if draft_only else EmailMode.SEND.value
             )
             delivery_meta["email"] = email_result
         except AppError as exc:

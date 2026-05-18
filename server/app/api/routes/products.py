@@ -9,8 +9,11 @@ from app.models.product import ProductCreate, ProductPublic, ProductUpdate
 from app.repositories.product_repo import ProductRepository
 from app.repositories.schedule_repo import ScheduleRepository
 from app.utils.ids import to_object_id
+from app.utils.logging import get_logger
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+log = get_logger("app.products")
 
 
 @router.post("", response_model=ProductPublic, status_code=status.HTTP_201_CREATED)
@@ -20,6 +23,13 @@ async def create_product(
     repo: Annotated[ProductRepository, Depends(product_repo)],
 ) -> ProductPublic:
     product = await repo.create(user_id=user.id, data=payload)
+    log.info(
+        "product.created",
+        user_id=str(user.id),
+        product_id=str(product.id),
+        incoming_email_mode=payload.emailMode.value,
+        stored_email_mode=product.emailMode.value,
+    )
     return ProductPublic.from_product(product)
 
 
@@ -52,6 +62,15 @@ async def update_product(
 ) -> ProductPublic:
     pid = to_object_id(product_id, field="product_id")
     product = await repo.update(user_id=user.id, product_id=pid, data=payload)
+    log.info(
+        "product.updated",
+        user_id=str(user.id),
+        product_id=str(product.id),
+        # None when the client didn't send the field — distinguishes
+        # "leave alone" from an explicit mode change.
+        incoming_email_mode=payload.emailMode.value if payload.emailMode else None,
+        stored_email_mode=product.emailMode.value,
+    )
     return ProductPublic.from_product(product)
 
 

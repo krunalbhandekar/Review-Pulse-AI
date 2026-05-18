@@ -1,11 +1,23 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 
 from pydantic import EmailStr, Field, field_validator
 
 from app.models.common import MongoModel, PyObjectId, utcnow
+
+
+class EmailMode(str, Enum):
+    """How report emails should be delivered for a given product.
+
+    ``SEND``  — actually send via Gmail.
+    ``DRAFT`` — create a Gmail draft only (safe default for new products).
+    """
+
+    SEND = "send"
+    DRAFT = "draft"
 
 
 class ProductBase(MongoModel):
@@ -15,6 +27,9 @@ class ProductBase(MongoModel):
     googleDocId: Optional[str] = None
     emailTo: Optional[EmailStr] = None
     lookbackWeeks: int = Field(default=12, ge=1, le=52)
+    # Default to DRAFT so a newly-created product can never silently spam
+    # the recipient before the operator has reviewed at least one run.
+    emailMode: EmailMode = EmailMode.DRAFT
 
     @field_validator("productName")
     @classmethod
@@ -36,6 +51,9 @@ class ProductUpdate(MongoModel):
     googleDocId: Optional[str] = None
     emailTo: Optional[EmailStr] = None
     lookbackWeeks: Optional[int] = Field(default=None, ge=1, le=52)
+    # None => "don't touch"; any other value patches the stored mode.
+    # Pydantic enforces it's one of the EmailMode members (422 on bad input).
+    emailMode: Optional[EmailMode] = None
 
 
 class Product(ProductBase):
@@ -62,6 +80,7 @@ class ProductPublic(ProductBase):
             googleDocId=p.googleDocId,
             emailTo=p.emailTo,
             lookbackWeeks=p.lookbackWeeks,
+            emailMode=p.emailMode,
             createdAt=p.createdAt,
             updatedAt=p.updatedAt,
         )

@@ -1,7 +1,13 @@
 from app.models.common import PyObjectId, MongoModel
 from app.models.user import User, UserPublic
 from app.models.google_connection import GoogleConnection
-from app.models.product import Product, ProductCreate, ProductUpdate, ProductPublic
+from app.models.product import (
+    EmailMode,
+    Product,
+    ProductCreate,
+    ProductPublic,
+    ProductUpdate,
+)
 from app.models.schedule import (
     Schedule,
     ScheduleCreate,
@@ -17,6 +23,7 @@ __all__ = [
     "User",
     "UserPublic",
     "GoogleConnection",
+    "EmailMode",
     "Product",
     "ProductCreate",
     "ProductUpdate",
