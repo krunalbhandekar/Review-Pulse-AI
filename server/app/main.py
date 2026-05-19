@@ -53,13 +53,21 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # CORS must be added BEFORE SessionMiddleware so the CORS response
+    # headers wrap every response, including those that set the session
+    # cookie. Starlette runs middleware in reverse add-order — last added
+    # runs first on the request, last on the response. Adding CORS last
+    # here means it's the outermost layer on the response.
     app.add_middleware(
         SessionMiddleware,
         secret_key=settings.session_secret,
         session_cookie=settings.session.COOKIE_NAME,
         max_age=settings.session.MAX_AGE_SECONDS,
-        same_site=settings.session.SAME_SITE,
-        https_only=settings.is_production,
+        # In production we need SameSite=None + Secure so the browser
+        # attaches the cookie on cross-origin fetches from the Vercel
+        # frontend to the Render backend. Locally we stay on Lax.
+        same_site=settings.session_same_site,
+        https_only=settings.session_https_only,
     )
 
     app.add_middleware(
@@ -68,6 +76,12 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # The session cookie is HttpOnly so the frontend never reads it
+        # directly, but Set-Cookie still needs to pass through CORS on
+        # the OAuth callback response chain — exposing it is harmless and
+        # avoids surprises if we ever add non-HttpOnly auxiliary cookies.
+        expose_headers=["Content-Disposition"],
+        max_age=600,
     )
 
     @app.exception_handler(AppError)

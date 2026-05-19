@@ -15,6 +15,8 @@ from __future__ import annotations
 import secrets
 from typing import Annotated
 
+from urllib.parse import urlencode, urlparse, urlunparse
+
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
@@ -30,6 +32,21 @@ from app.utils.logging import get_logger
 log = get_logger("api.auth")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _login_redirect_with_error(reason: str) -> RedirectResponse:
+    """Bounce back to the frontend login page with an ``?error=`` query.
+
+    OAuth failures on the callback would otherwise render the API's JSON
+    error page (which the user can't recover from) and trap them outside
+    the SPA. By redirecting back to the frontend we keep the user in the
+    app and let the login page surface a human-readable message.
+    """
+    parsed = urlparse(settings.post_logout_redirect or settings.post_login_redirect)
+    target = urlunparse(
+        parsed._replace(path="/login", query=urlencode({"error": reason}))
+    )
+    return RedirectResponse(url=target)
 
 
 @router.get("/google/login")
@@ -53,13 +70,20 @@ async def google_callback(
     ] = ...,
 ) -> RedirectResponse:
     if error:
-        raise GoogleAuthError(f"Google returned an error: {error}")
+        log.warning("auth.google.callback_error", error=error)
+        return _login_redirect_with_error(error)
     if not code:
-        raise GoogleAuthError("Missing ?code in OAuth callback")
+        log.warning("auth.google.callback_missing_code")
+        return _login_redirect_with_error("missing_code")
 
     expected_state = request.session.pop("oauth_state", None)
     if not expected_state or state != expected_state:
-        raise GoogleAuthError("OAuth state mismatch — possible CSRF; restart login")
+        # Most often caused by the user opening a stale Google consent tab
+        # whose state cookie has since rotated, or by third-party-cookie
+        # blockers stripping the session cookie on the cross-site hop.
+        # Either way, recovery is "restart the flow", not a 4xx page.
+        log.warning("auth.google.state_mismatch")
+        return _login_redirect_with_error("state_mismatch")
 
     token = await google_oauth.exchange_code(code=code, state=state)
     profile = await google_oauth.fetch_userinfo(token["access_token"])

@@ -16,15 +16,20 @@ import { ROUTES } from "@/lib/config";
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { data: user, isLoading, isError } = useCurrentUser();
+  const { data: user, isLoading, isFetching, isFetched, isError } = useCurrentUser();
 
   React.useEffect(() => {
-    if (!isLoading && !user) {
+    // Only redirect once we've actually completed a fetch and confirmed
+    // there's no user. Reading `!isLoading` alone fires on cached nulls
+    // and on the brief render between OAuth callback landing and the
+    // first /auth/me resolving — that was the source of the
+    // /dashboard → /login → /dashboard loop in production.
+    if (isFetched && !isFetching && !user) {
       router.replace(ROUTES.login);
     }
-  }, [user, isLoading, router]);
+  }, [user, isFetched, isFetching, router]);
 
-  if (isLoading || (!user && !isError)) {
+  if (isLoading || isFetching || (!user && !isError)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex items-center gap-3 text-muted-foreground">

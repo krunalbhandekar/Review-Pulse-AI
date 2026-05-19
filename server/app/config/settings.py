@@ -64,6 +64,12 @@ class SessionConfig:
 
     COOKIE_NAME: str = "mt_session"
     MAX_AGE_SECONDS: int = 60 * 60 * 24 * 14  # 14 days
+    # Default for local dev (same-site localhost). Production overrides this
+    # to "none" via Settings.session_same_site because the deployed frontend
+    # (Vercel) and backend (Render) live on different registrable domains —
+    # SameSite=Lax would silently drop the session cookie on cross-origin
+    # XHR/fetch calls from the frontend, causing a /dashboard → /login loop
+    # after Google OAuth.
     SAME_SITE: str = "lax"
 
 
@@ -284,6 +290,25 @@ class Settings:
     def is_production(self) -> bool:
         """True iff ``ENVIRONMENT=PRODUCTION``. Used to gate cookie HTTPS
         flags and switch email send-vs-draft behaviour."""
+        return IS_PRODUCTION
+
+    @property
+    def session_same_site(self) -> str:
+        """SameSite attribute for the session cookie.
+
+        Production runs the frontend and backend on different registrable
+        domains (Vercel vs Render), so the cookie MUST be ``SameSite=None``
+        with ``Secure`` for the browser to attach it to cross-origin
+        ``credentials: "include"`` fetches. Locally everything is on
+        ``localhost`` and Lax is the safer default.
+        """
+        return "none" if IS_PRODUCTION else self.session.SAME_SITE
+
+    @property
+    def session_https_only(self) -> bool:
+        """Mark the cookie ``Secure`` in production. ``SameSite=None``
+        without ``Secure`` is rejected by all modern browsers, so these
+        two flags must flip together."""
         return IS_PRODUCTION
 
 
