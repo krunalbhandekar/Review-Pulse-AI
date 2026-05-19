@@ -7,9 +7,18 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { TrendsChart } from "@/components/dashboard/trends-chart";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { OnboardingCTA } from "@/components/dashboard/onboarding-cta";
-import { StatCardShimmer, TableShimmer } from "@/components/shared/loading-shimmer";
+import {
+  StatCardShimmer,
+  TableShimmer,
+} from "@/components/shared/loading-shimmer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useProducts } from "@/hooks/use-products";
 import { useReports } from "@/hooks/use-reports";
 import { useSchedules } from "@/hooks/use-schedules";
@@ -33,7 +42,9 @@ export default function DashboardPage() {
   const { data: productsPage, isLoading: pLoading } = useProducts({
     limit: MAX_PAGE_SIZE,
   });
-  const { data: schedulesPage, isLoading: sLoading } = useSchedules({ limit: 1 });
+  const { data: schedulesPage, isLoading: sLoading } = useSchedules({
+    limit: 1,
+  });
   const { data: recentReports, isLoading: rLoading } = useReports({
     limit: RECENT_ACTIVITY_LIMIT,
   });
@@ -102,9 +113,7 @@ export default function DashboardPage() {
               />
               <StatCard
                 label="Last generated"
-                value={
-                  lastReport ? fmtRelative(lastReport.generatedAt) : "—"
-                }
+                value={lastReport ? fmtRelative(lastReport.generatedAt) : "—"}
                 icon={Sparkles}
                 hint={lastReport?.reportTitle ?? "No runs yet"}
               />
@@ -129,7 +138,10 @@ export default function DashboardPage() {
               {loading ? (
                 <TableShimmer rows={4} />
               ) : reports.length > 0 ? (
-                <RecentActivity reports={reports} productNameById={productNameById} />
+                <RecentActivity
+                  reports={reports}
+                  productNameById={productNameById}
+                />
               ) : (
                 <Card>
                   <CardHeader>
