@@ -5,6 +5,14 @@ import { AuthGate } from "@/components/layout/auth-gate";
 
 export const metadata: Metadata = { title: "Workspace" };
 
+// Auth-gated routes depend on the server's session cookie, which doesn't
+// exist at build time. Prerendering them yields nothing useful (just a
+// loading spinner) and forces every leaf page to be SSR'd during build —
+// which can OOM on Vercel's cloud build container even when local builds
+// succeed. Mark the whole segment dynamic so it renders only at request
+// time.
+export const dynamic = "force-dynamic";
+
 export default function DashboardLayout({
   children,
 }: {

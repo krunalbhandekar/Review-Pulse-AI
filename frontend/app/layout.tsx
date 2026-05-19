@@ -4,7 +4,12 @@ import { Providers } from "@/components/providers";
 import { BRAND } from "@/lib/config";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+});
 
 export const metadata: Metadata = {
   title: {
