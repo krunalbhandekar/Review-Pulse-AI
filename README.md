@@ -385,6 +385,8 @@ All collections are **`userId`-scoped**. The server never reads or writes a docu
 
 This is the **most important** part of setup. Walk through it carefully.
 
+> 🎥 **Video walkthrough:** [`assets/video/google-client-setup.mp4`](./assets/video/google-client-setup.mp4) — a step-by-step screen recording of the entire Google Cloud Console setup.
+
 ### Step 1 — Create / select a project
 
 1. Go to [console.cloud.google.com](https://console.cloud.google.com/).
