@@ -84,9 +84,8 @@ class MCPConfig:
 
 @dataclass(frozen=True)
 class GroqConfig:
-    """Static Groq tuning (model, temperature). API key is a secret."""
+    """Static Groq tuning. API key and model come from env."""
 
-    MODEL: str = "llama-3.1-8b-instant"
     TEMPERATURE: float = 0.2
     REQUEST_TIMEOUT_SECONDS: float = 60.0
 
@@ -188,6 +187,8 @@ class _Secrets(BaseSettings):
 
     # Groq summarisation.
     groq_api_key: str = ""
+    # Required — no code default, so a retired model is swapped via env.
+    groq_model: str = ""
     # When true, the summariser uses aggressive caps and skips the final
     # merge call — intended for free-tier Groq accounts hitting TPM 429s.
     low_cost_mode: bool = False
@@ -240,6 +241,7 @@ class Settings:
     mcp_server_url: str = ""
     mcp_shared_secret: str = ""
     groq_api_key: str = ""
+    groq_model: str = ""
     low_cost_mode: bool = False
 
     @classmethod
@@ -256,6 +258,7 @@ class Settings:
             mcp_server_url=env.mcp_server_url,
             mcp_shared_secret=env.mcp_shared_secret,
             groq_api_key=env.groq_api_key,
+            groq_model=env.groq_model.strip(),
             low_cost_mode=env.low_cost_mode,
         )
 

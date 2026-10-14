@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { AuthGate } from "@/components/layout/auth-gate";
+import { DeveloperCredit } from "@/components/shared/developer-credit";
 
 export const metadata: Metadata = { title: "Workspace" };
 
@@ -32,6 +33,9 @@ export default function DashboardLayout({
           <main className="flex-1 px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
             {children}
           </main>
+          <footer className="border-t px-4 py-4 sm:px-6 lg:px-8">
+            <DeveloperCredit />
+          </footer>
         </div>
       </div>
     </AuthGate>

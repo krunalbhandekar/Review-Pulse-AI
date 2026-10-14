@@ -12,4 +12,5 @@ python -m uvicorn app.main:app --reload --port 8000
 
 terminal 3
 cd frontend/
+npm i
 npm run dev

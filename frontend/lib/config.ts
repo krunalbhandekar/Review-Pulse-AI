@@ -25,6 +25,13 @@ export const CONTACT_US = {
   },
 };
 
+// Shown in footers and as the admin contact (e.g. "AI model unavailable").
+export const DEVELOPER = {
+  name: "Krunal Bhandekar",
+  email: "krunalbhandekar10@gmail.com",
+  linkedin: "https://www.linkedin.com/in/krunal-bhandekar/",
+} as const;
+
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 

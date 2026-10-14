@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { BRAND, CONTACT_US, ROUTES } from "@/lib/config";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { DeveloperCredit } from "@/components/shared/developer-credit";
 
 interface LegalLayoutProps {
   title: string;
@@ -110,6 +111,9 @@ export function LegalFooter() {
             Terms of Service
           </Link>
         </nav>
+      </div>
+      <div className="container border-t border-border/60 py-4">
+        <DeveloperCredit />
       </div>
     </footer>
   );

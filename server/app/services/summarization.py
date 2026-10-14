@@ -5,7 +5,7 @@ Pipeline:
     reviews -> selection/truncation -> chunk summaries -> final summary
                                                     \\-> heuristic fallback
 
-The Groq llama-3.1-8b-instant model has a tight per-request token budget
+Groq models have a tight per-request token budget
 (HTTP 413 on overflow), so we cap reviews per run, truncate bodies, and
 fan out into small chunks before merging. If Groq is unavailable or any
 LLM step fails, we still return a deterministic local summary so the
@@ -24,7 +24,7 @@ from typing import Iterable
 from app.config import settings
 from app.integrations.groq_client import GroqClient
 from app.services.ingestion import Review
-from app.utils.errors import AppError
+from app.utils.errors import AppError, ModelUnavailableError
 from app.utils.logging import get_logger
 
 log = get_logger("service.summarization")
@@ -344,6 +344,9 @@ async def summarise_reviews(
 
     Returns a :class:`SummaryResult` so the caller can choose a status
     (SUCCESS / PARTIAL) based on which path produced the summary.
+
+    Raises :class:`ModelUnavailableError` if the Groq model is retired —
+    a heuristic digest would be misleading, so the caller must not deliver.
     """
     started_at = time.monotonic()
     p = settings.pipeline
@@ -468,6 +471,8 @@ async def summarise_reviews(
                 estimated_tokens=rendered_tokens,
                 cumulative_estimated_tokens=cumulative_tokens,
             )
+        except ModelUnavailableError:
+            raise
         except (AppError, Exception) as exc:  # noqa: BLE001
             failed += 1
             bound.warning(
@@ -531,6 +536,8 @@ async def summarise_reviews(
             chunk_failed=failed,
             tpm_used=cumulative_tokens,
         )
+    except ModelUnavailableError:
+        raise
     except (AppError, Exception) as exc:  # noqa: BLE001
         bound.warning(
             "summarisation.final_failed_using_partial",

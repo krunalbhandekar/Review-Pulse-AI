@@ -52,6 +52,7 @@ There are **two surfaces**:
    MCP_SERVER_URL
    MCP_SHARED_SECRET
    GROQ_API_KEY
+   GROQ_MODEL
    ```
 
    That's it. CORS origins are *derived* from the redirects; the
@@ -203,11 +204,12 @@ The session cookie is `https_only` automatically whenever
    | `MCP_SERVER_URL`      | `https://<mcp service>.onrender.com`                         |
    | `MCP_SHARED_SECRET`   | must match the value on the MCP service                      |
    | `GROQ_API_KEY`        | from console.groq.com                                        |
+   | `GROQ_MODEL`          | e.g. `openai/gpt-oss-20b`; change when Groq retires a model  |
 
    You do **not** set `PORT`, `APP_NAME`, `LOG_LEVEL`, `IS_PRODUCTION`,
    `MONGODB_DB`, `FRONTEND_ORIGINS`, `SESSION_COOKIE_NAME`,
    `SESSION_MAX_AGE_SECONDS`, `MCP_TIMEOUT_SECONDS`, `MCP_MAX_RETRIES`,
-   `GROQ_MODEL`, or `SCHEDULER_POLL_INTERVAL` — they're code constants
+   or `SCHEDULER_POLL_INTERVAL` — they're code constants
    or, in the case of `IS_PRODUCTION`, *derived* from `ENVIRONMENT`.
    Setting `ENVIRONMENT=PRODUCTION` is what flips the app into
    production mode (HTTPS-only cookies, JSON logs, real email sends).

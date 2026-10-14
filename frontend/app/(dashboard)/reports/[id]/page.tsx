@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useReport } from "@/hooks/use-reports";
 import { useProduct } from "@/hooks/use-products";
 import { fmtDateTime } from "@/lib/format";
-import { ROUTES } from "@/lib/config";
+import { DEVELOPER, ROUTES } from "@/lib/config";
 
 export default function ReportDetailPage() {
   const params = useParams<{ id: string }>();
@@ -88,7 +88,34 @@ export default function ReportDetailPage() {
         </Stat>
       </div>
 
-      {report.error && (
+      {report.error?.startsWith("model_unavailable") ? (
+        <Card>
+          <CardContent className="border-l-4 border-warning bg-warning/10 p-4 text-sm text-warning-on-tint">
+            <p className="font-medium">AI model unavailable</p>
+            <p className="mt-1">
+              The summarisation model is retired by the provider or not configured, so this report was not
+              generated. No Google Doc was created or updated and no email was sent.
+            </p>
+            <p className="mt-2">
+              Please ask the admin to update the Groq model, then run the report again. Admin:{" "}
+              <span className="font-medium">{DEVELOPER.name}</span> ·{" "}
+              <a className="underline underline-offset-2" href={`mailto:${DEVELOPER.email}`}>
+                {DEVELOPER.email}
+              </a>{" "}
+              ·{" "}
+              <a
+                className="underline underline-offset-2"
+                href={DEVELOPER.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                LinkedIn
+              </a>
+            </p>
+            <p className="mt-2 font-mono text-xs opacity-80">{report.error}</p>
+          </CardContent>
+        </Card>
+      ) : report.error && (
         <Card>
           <CardContent className="border-l-4 border-destructive bg-destructive/5 p-4 text-sm text-destructive">
             <p className="font-medium">Pipeline error</p>

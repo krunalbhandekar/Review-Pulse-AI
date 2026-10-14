@@ -4,6 +4,7 @@ import { Hero } from "@/components/landing/hero";
 import { Features } from "@/components/landing/features";
 import { Workflow } from "@/components/landing/workflow";
 import { CTA } from "@/components/landing/cta";
+import { DeveloperCredit } from "@/components/shared/developer-credit";
 import { BRAND, ROUTES } from "@/lib/config";
 
 export default function LandingPage() {
@@ -29,6 +30,9 @@ export default function LandingPage() {
               Terms of Service
             </Link>
           </div>
+        </div>
+        <div className="container border-t py-4">
+          <DeveloperCredit />
         </div>
       </footer>
     </div>

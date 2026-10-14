@@ -24,7 +24,7 @@ from app.models.report import Report, ReportStatus
 from app.repositories.report_repo import ReportRepository
 from app.services.ingestion import gather_reviews
 from app.services.summarization import summarise_reviews
-from app.utils.errors import AppError
+from app.utils.errors import AppError, ModelUnavailableError
 from app.utils.logging import get_logger
 
 log = get_logger("service.report")
@@ -97,6 +97,7 @@ async def generate_report_for_product(
     #   partial  => chunk summaries combined      -> PARTIAL
     #   fallback => deterministic local summary   -> PARTIAL
     #   empty summary string                      -> FAILED
+    #   Groq model retired                        -> FAILED, no delivery
     try:
         summary_result = await summarise_reviews(
             product_name=product.productName,
@@ -122,6 +123,14 @@ async def generate_report_for_product(
             groq_retry_count=summary_result.groq_retry_count,
             total_runtime_seconds=summary_result.total_runtime_seconds,
         )
+    except ModelUnavailableError as exc:
+        # Skip doc + email: a heuristic digest would look like a real
+        # report to recipients. Surface it as a warning on the dashboard.
+        bound.error("report.model_unavailable", error=str(exc))
+        report.status = ReportStatus.FAILED
+        report.error = f"{ModelUnavailableError.code}: {exc}"
+        report.deliveryMeta = {**delivery_meta, "delivery_skipped": True}
+        return await ReportRepository().create(report)
     except Exception as exc:  # noqa: BLE001
         bound.error("report.summarise_failed", error=str(exc))
         report.status = ReportStatus.FAILED

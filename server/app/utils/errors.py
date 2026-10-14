@@ -44,6 +44,13 @@ class UpstreamError(AppError):
     code = "upstream_error"
 
 
+class ModelUnavailableError(UpstreamError):
+    """The configured LLM model was retired / is not available upstream."""
+
+    status_code = 503
+    code = "model_unavailable"
+
+
 class GoogleAuthError(AppError):
     status_code = 401
     code = "google_auth_error"

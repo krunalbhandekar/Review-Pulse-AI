@@ -512,6 +512,7 @@ MCP_SHARED_SECRET=
 
 # Groq LLM.
 GROQ_API_KEY=
+GROQ_MODEL=openai/gpt-oss-20b   # required; change when Groq retires a model
 ```
 
 ### `mcp/.env`

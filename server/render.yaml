@@ -102,12 +102,17 @@ services:
       - key: GROQ_API_KEY
         sync: false
 
+      # Groq model id (required, no code default), e.g. openai/gpt-oss-20b.
+      # Update it when Groq retires the current model.
+      - key: GROQ_MODEL
+        sync: false
+
 # =============================================================================
 # Env vars you intentionally do NOT set here:
 #
 #   PORT, APP_NAME, LOG_LEVEL, IS_PRODUCTION, MONGODB_DB, FRONTEND_ORIGINS,
 #   SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS, MCP_TIMEOUT_SECONDS,
-#   MCP_MAX_RETRIES, GROQ_MODEL, SCHEDULER_POLL_INTERVAL
+#   MCP_MAX_RETRIES, SCHEDULER_POLL_INTERVAL
 #
 # - PORT is injected by Render.
 # - IS_PRODUCTION is derived from ENVIRONMENT (see app/config/settings.py).

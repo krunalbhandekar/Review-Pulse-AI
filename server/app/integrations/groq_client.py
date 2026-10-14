@@ -1,7 +1,7 @@
 """Minimal Groq chat-completions client.
 
-The model name, temperature, and request timeout live as static config
-on ``GroqConfig``. Only the API key comes from env.
+The temperature and request timeout live as static config on
+``GroqConfig``. The API key and model come from env (both required).
 
 Reliability:
 
@@ -20,7 +20,7 @@ import re
 import httpx
 
 from app.config import settings
-from app.utils.errors import UpstreamError
+from app.utils.errors import ModelUnavailableError, UpstreamError
 from app.utils.logging import get_logger
 
 log = get_logger("integration.groq")
@@ -28,6 +28,8 @@ log = get_logger("integration.groq")
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 _RETRYABLE_STATUS = {429, 500, 502, 503}
+# Error codes Groq returns when a model has been retired.
+_MODEL_GONE_CODES = {"model_not_found", "model_decommissioned"}
 _BACKOFF_SCHEDULE = (5.0, 10.0, 20.0)
 # Matches Groq's TPM throttle message; covers float seconds too.
 _TRY_AGAIN_RE = re.compile(r"try again in\s+([0-9]+(?:\.[0-9]+)?)\s*s", re.IGNORECASE)
@@ -45,6 +47,16 @@ def _parse_retry_after(body: str) -> float | None:
         return None
 
 
+def _is_model_gone(response: httpx.Response) -> bool:
+    if response.status_code not in (400, 404):
+        return False
+    try:
+        code = response.json().get("error", {}).get("code")
+    except ValueError:
+        return False
+    return code in _MODEL_GONE_CODES
+
+
 class GroqClient:
     def __init__(
         self,
@@ -56,7 +68,7 @@ class GroqClient:
         max_retries: int = 3,
     ) -> None:
         self._api_key = api_key or settings.groq_api_key
-        self._model = model or settings.groq.MODEL
+        self._model = model or settings.groq_model
         self._temperature = (
             temperature if temperature is not None else settings.groq.TEMPERATURE
         )
@@ -74,6 +86,11 @@ class GroqClient:
     async def _chat_with_retry(self, *, system: str, user: str) -> str:
         if not self._api_key:
             raise UpstreamError("GROQ_API_KEY is not configured", status_code=503)
+        if not self._model:
+            raise ModelUnavailableError(
+                "Groq model is not configured. "
+                "Please ask the admin to update the Groq model."
+            )
 
         payload = {
             "model": self._model,
@@ -120,6 +137,17 @@ class GroqClient:
                         raise UpstreamError(
                             "Groq response missing choices/message"
                         ) from exc
+
+                if _is_model_gone(response):
+                    log.error(
+                        "groq.model_unavailable",
+                        model=self._model,
+                        body=(response.text or "")[:500],
+                    )
+                    raise ModelUnavailableError(
+                        f"Groq model '{self._model}' is no longer available. "
+                        "Please ask the admin to update the Groq model."
+                    )
 
                 last_status = response.status_code
                 last_body = response.text or ""
