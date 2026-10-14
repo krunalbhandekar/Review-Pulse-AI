@@ -1,7 +1,8 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { startGoogleLogin } from "@/services/auth";
+import { useGoogleLogin } from "@/hooks/use-google-login";
 import { cn } from "@/lib/utils";
 
 function GoogleMark({ className }: { className?: string }) {
@@ -32,14 +33,16 @@ export function GoogleLoginButton({
   size = "lg",
   variant = "default",
 }: Props) {
+  const { login, pending } = useGoogleLogin();
   return (
     <Button
       size={size}
       variant={variant}
-      onClick={startGoogleLogin}
+      onClick={login}
+      disabled={pending}
       className={cn("min-w-[220px]", className)}
     >
-      <GoogleMark />
+      {pending ? <Loader2 className="size-4 animate-spin" /> : <GoogleMark />}
       {label}
     </Button>
   );

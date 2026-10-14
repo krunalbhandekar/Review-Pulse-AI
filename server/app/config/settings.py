@@ -80,6 +80,10 @@ class MCPConfig:
     TIMEOUT_SECONDS: float = 30.0
     MAX_RETRIES: int = 3
     BACKOFF_SECONDS: float = 0.5
+    # Render free-tier cold starts take ~30-60s; wait this long for MCP's
+    # /health before delivery, and use a short probe for the status API.
+    WAKE_TIMEOUT_SECONDS: float = 90.0
+    HEALTH_PROBE_SECONDS: float = 3.0
 
 
 @dataclass(frozen=True)

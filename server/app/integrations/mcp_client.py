@@ -20,6 +20,48 @@ log = get_logger("integration.mcp")
 
 _RETRYABLE = frozenset({408, 425, 429, 500, 502, 503, 504})
 
+# Strong refs so fire-and-forget wake tasks aren't garbage-collected.
+_wake_tasks: set[asyncio.Task] = set()
+
+
+async def probe_mcp(timeout: float | None = None) -> bool:
+    """Return True if MCP's /health answers 200 within ``timeout``.
+
+    A request to a sleeping Render service also triggers its spin-up, so
+    a probe that times out still starts waking MCP.
+    """
+    base_url = settings.mcp_server_url.rstrip("/")
+    if not base_url:
+        return False
+    timeout = timeout if timeout is not None else settings.mcp.HEALTH_PROBE_SECONDS
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.get(f"{base_url}/health")
+        return response.status_code == 200
+    except httpx.HTTPError:
+        return False
+
+
+def wake_mcp() -> None:
+    """Fire-and-forget: start waking MCP without blocking the caller."""
+    task = asyncio.create_task(probe_mcp(settings.mcp.WAKE_TIMEOUT_SECONDS))
+    _wake_tasks.add(task)
+    task.add_done_callback(_wake_tasks.discard)
+
+
+async def wait_for_mcp(timeout: float | None = None) -> bool:
+    """Poll MCP's /health until it answers or ``timeout`` elapses."""
+    timeout = timeout if timeout is not None else settings.mcp.WAKE_TIMEOUT_SECONDS
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+    while True:
+        remaining = deadline - loop.time()
+        if remaining <= 0:
+            return False
+        if await probe_mcp(min(remaining, 30.0)):
+            return True
+        await asyncio.sleep(min(3.0, max(deadline - loop.time(), 0)))
+
 
 class MCPClient:
     def __init__(

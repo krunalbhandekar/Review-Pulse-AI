@@ -16,7 +16,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useToast } from "@/hooks/use-toast";
-import { logout, startGoogleLogin } from "@/services/auth";
+import { logout } from "@/services/auth";
+import { useGoogleLogin } from "@/hooks/use-google-login";
 import { ROUTES } from "@/lib/config";
 import { initials } from "@/lib/format";
 
@@ -24,6 +25,7 @@ export function UserMenu() {
   const { data: user, isLoading } = useCurrentUser();
   const router = useRouter();
   const { toast } = useToast();
+  const { login: googleLogin, pending: googlePending } = useGoogleLogin();
 
   if (isLoading) {
     return <Skeleton className="size-8 rounded-full" />;
@@ -31,7 +33,7 @@ export function UserMenu() {
 
   if (!user) {
     return (
-      <Button size="sm" onClick={startGoogleLogin}>
+      <Button size="sm" onClick={googleLogin} disabled={googlePending}>
         Sign in
       </Button>
     );

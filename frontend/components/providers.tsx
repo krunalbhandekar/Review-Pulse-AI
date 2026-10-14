@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
+import { ServiceGate } from "@/components/shared/service-status";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -39,7 +40,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <QueryClientProvider client={client}>
-        <TooltipProvider delayDuration={150}>{children}</TooltipProvider>
+        <TooltipProvider delayDuration={150}>
+          <ServiceGate>{children}</ServiceGate>
+        </TooltipProvider>
         <Toaster />
       </QueryClientProvider>
     </ThemeProvider>

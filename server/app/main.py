@@ -14,6 +14,7 @@ from app.api.routes import auth, health, products, reports, schedules
 from app.config import settings
 from app.db import close_mongo_connection, connect_to_mongo
 from app.db.indexes import ensure_indexes
+from app.integrations.mcp_client import wake_mcp
 from app.scheduler import shutdown_scheduler, start_scheduler
 from app.utils.errors import AppError
 from app.utils.logging import configure_logging, get_logger
@@ -33,6 +34,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         mcp_url=settings.mcp_server_url,
     )
 
+    # Server and MCP sleep independently on Render; when the server
+    # wakes, start waking MCP too so it's ready by the first delivery.
+    wake_mcp()
     await connect_to_mongo()
     await ensure_indexes()
     start_scheduler()

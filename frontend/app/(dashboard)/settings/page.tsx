@@ -20,7 +20,8 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useToast } from "@/hooks/use-toast";
-import { logout, startGoogleLogin } from "@/services/auth";
+import { logout } from "@/services/auth";
+import { useGoogleLogin } from "@/hooks/use-google-login";
 import { fmtDate, initials } from "@/lib/format";
 import { ROUTES } from "@/lib/config";
 
@@ -28,6 +29,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { data: user, isLoading } = useCurrentUser();
   const { toast } = useToast();
+  const { login: googleLogin, pending: googlePending } = useGoogleLogin();
   const [signingOut, setSigningOut] = React.useState(false);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
 
@@ -120,7 +122,7 @@ export default function SettingsPage() {
               Docs + Gmail scopes are granted to your account.
             </p>
           </div>
-          <Button variant="outline" onClick={startGoogleLogin}>
+          <Button variant="outline" onClick={googleLogin} disabled={googlePending}>
             <RefreshCw /> Reconnect Google
           </Button>
         </CardContent>

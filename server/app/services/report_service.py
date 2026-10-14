@@ -18,7 +18,7 @@ from typing import Optional
 
 from bson import ObjectId
 
-from app.integrations.mcp_client import MCPClient
+from app.integrations.mcp_client import MCPClient, wait_for_mcp, wake_mcp
 from app.models.product import EmailMode, Product
 from app.models.report import Report, ReportStatus
 from app.repositories.report_repo import ReportRepository
@@ -62,6 +62,10 @@ async def generate_report_for_product(
         generatedAt=started_at,
     )
     delivery_meta: dict = {}
+
+    # MCP may be asleep (Render free tier). Start waking it now so it
+    # spins up while we ingest + summarise, instead of at delivery time.
+    wake_mcp()
 
     # 1. INGEST
     try:
@@ -147,6 +151,11 @@ async def generate_report_for_product(
     # have a usable summary, but downstream actions didn't all complete.
     mcp = MCPClient()
     user_id_str = str(user_id)
+
+    if not await wait_for_mcp():
+        # Still try delivery: MCPClient retries on its own, and a slow
+        # probe doesn't always mean the calls will fail.
+        bound.warning("report.mcp_not_ready")
 
     if product.googleDocId:
         try:
